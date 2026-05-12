@@ -1,0 +1,193 @@
+/* ============================================
+   Dashboard — Awwwards Inspired
+   ============================================ */
+
+body.dashboard-page {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  background: var(--bg-main);
+}
+
+/* Sidebar */
+.sidebar {
+  border-right: 1px solid #eee;
+  padding: 60px 40px;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-brand {
+  margin-bottom: 80px;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  flex: 1;
+}
+
+.nav-item {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  transition: var(--transition-fast);
+}
+
+.nav-item:hover, .nav-item.active {
+  color: var(--text-main);
+  transform: translateX(5px);
+}
+
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding-top: 40px;
+  border-top: 1px solid #eee;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  background: #000;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-weight: 700;
+}
+
+/* Main Content */
+.dash-main {
+  padding: 80px 100px;
+}
+
+.dash-header {
+  margin-bottom: 100px;
+}
+
+.header-greet h1 {
+  font-size: 80px;
+  margin-bottom: 20px;
+}
+
+/* Progress Hero */
+.progress-section {
+  margin-bottom: 120px;
+}
+
+.section-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: var(--text-muted);
+  margin-bottom: 30px;
+}
+
+.progress-hero {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 60px;
+  background: #fcfcfc;
+  padding: 60px;
+  border: 1px solid #eee;
+}
+
+.progress-content h2 {
+  font-size: 48px;
+  margin-bottom: 15px;
+}
+
+.progress-content p {
+  font-size: 18px;
+  color: var(--text-secondary);
+  margin-bottom: 40px;
+}
+
+.progress-visual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.circle-progress {
+  width: 180px;
+  height: 180px;
+  border: 10px solid #eee;
+  border-top-color: #000;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 800;
+}
+
+/* Course Grid */
+.courses-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 40px;
+}
+
+.course-card {
+  transition: var(--transition-smooth);
+}
+
+.card-thumb {
+  height: 300px;
+  overflow: hidden;
+  margin-bottom: 25px;
+}
+
+.card-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: var(--transition-smooth);
+}
+
+.course-card:hover .card-thumb img {
+  transform: scale(1.05);
+}
+
+.card-tag {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  display: block;
+}
+
+.course-card h3 {
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+.course-card p {
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+@media (max-width: 1400px) {
+  .courses-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 1024px) {
+  body.dashboard-page { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .dash-main { padding: 60px 40px; }
+  .header-greet h1 { font-size: 60px; }
+  .progress-hero { grid-template-columns: 1fr; }
+}

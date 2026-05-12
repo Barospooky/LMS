@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guitar Curriculum - MelodyAcademy</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="dashboard-page">
+
+  <!-- Custom Cursor -->
+  <div class="custom-cursor"></div>
+  <div class="custom-cursor-follower"></div>
+
+  <!-- Sidebar Nav -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <span class="text-display font-bold tracking-tighter">MELODY.</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="nav-item">
+        <span>01 / My Journey</span>
+      </a>
+      <a href="dashboard.html" class="nav-item active">
+        <span>02 / All Courses</span>
+      </a>
+      <a href="dashboard.html" class="nav-item">
+        <span>03 / Practice Room</span>
+      </a>
+      <a href="dashboard.html" class="nav-item">
+        <span>04 / Account</span>
+      </a>
+    </nav>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="dash-main">
+
+    <!-- Top Bar -->
+    <header class="dash-header">
+      <div class="header-greet reveal">
+        <a href="dashboard.html" class="nav-back magnetic" style="margin-bottom: 30px; display: block;">&larr; Back to Dashboard</a>
+        <h1 class="text-serif tracking-tighter">Guitar</h1>
+        <p class="text-secondary">A comprehensive journey through the strings, from foundational acoustic strumming to the intricate heights of electric shredding.</p>
+      </div>
+    </header>
+
+    <!-- Course Grid -->
+    <section class="courses-section reveal" style="animation-delay: 0.2s;">
+      <div class="courses-grid">
+
+        <div class="course-card" onclick="window.location.href='course.html'">
+          <div class="card-thumb">
+            <img src="https://images.unsplash.com/photo-1510915363646-df03d474d59e?q=80&w=2070&auto=format&fit=crop" alt="Guitar">
+          </div>
+          <div class="card-body">
+            <span class="card-tag">Jazz</span>
+            <h3 class="text-display font-semibold">Jazz Guitar Theory</h3>
+            <p>Explore complex chords, progressions, and improvisational skills in the world of jazz.</p>
+          </div>
+        </div>
+
+        <div class="course-card" onclick="window.location.href='course.html'">
+          <div class="card-thumb">
+            <img src="https://images.unsplash.com/photo-1550985616-10810253b84d?q=80&w=2070&auto=format&fit=crop" alt="Acoustic">
+          </div>
+          <div class="card-body">
+            <span class="card-tag">Acoustic</span>
+            <h3 class="text-display font-semibold">Acoustic Fingerstyle</h3>
+            <p>Master the art of playing melody and rhythm simultaneously with intricate fingerpicking.</p>
+          </div>
+        </div>
+
+        <div class="course-card" onclick="window.location.href='course.html'">
+          <div class="card-thumb">
+            <img src="https://images.unsplash.com/photo-1516924962500-2b4b3b99ea02?q=80&w=2070&auto=format&fit=crop" alt="Rock">
+          </div>
+          <div class="card-body">
+            <span class="card-tag">Rock</span>
+            <h3 class="text-display font-semibold">Rock Lead Guitar</h3>
+            <p>Develop power, speed, and precision with essential rock soloing techniques and theory.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <script src="js/interactions.js"></script>
+</body>
+</html>

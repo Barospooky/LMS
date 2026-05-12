@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piano Curriculum - MelodyAcademy</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="dashboard-page">
+
+  <!-- Custom Cursor -->
+  <div class="custom-cursor"></div>
+  <div class="custom-cursor-follower"></div>
+
+  <!-- Sidebar Nav -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <span class="text-display font-bold tracking-tighter">MELODY.</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="nav-item">
+        <span>01 / My Journey</span>
+      </a>
+      <a href="dashboard.html" class="nav-item active">
+        <span>02 / All Courses</span>
+      </a>
+      <a href="dashboard.html" class="nav-item">
+        <span>03 / Practice Room</span>
+      </a>
+      <a href="dashboard.html" class="nav-item">
+        <span>04 / Account</span>
+      </a>
+    </nav>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="dash-main">
+
+    <!-- Top Bar -->
+    <header class="dash-header">
+      <div class="header-greet reveal">
+        <a href="dashboard.html" class="nav-back magnetic" style="margin-bottom: 30px; display: block;">&larr; Back to Dashboard</a>
+        <h1 class="text-serif tracking-tighter">Piano Curriculum</h1>
+        <p class="text-secondary">Master the keys with our structured piano courses.</p>
+      </div>
+    </header>
+
+    <!-- Course Grid -->
+    <section class="courses-section reveal" style="animation-delay: 0.2s;">
+      <div class="courses-grid">
+
+        <div class="course-card" onclick="window.location.href='course.html'">
+          <div class="card-thumb">
+            <img src="https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?q=80&w=2070&auto=format&fit=crop" alt="Piano">
+          </div>
+          <div class="card-body">
+            <span class="card-tag">Classical</span>
+            <h3 class="text-display font-semibold">Classical Piano: Grade 4</h3>
+            <p>Master the techniques and theory of advanced classical pieces.</p>
+          </div>
+        </div>
+
+        <div class="course-card" onclick="window.location.href='course.html'">
+          <div class="card-thumb">
+            <img src="https://images.unsplash.com/photo-1552422535-c45813c61732?q=80&w=2070&auto=format&fit=crop" alt="Piano Jazz">
+          </div>
+          <div class="card-body">
+            <span class="card-tag">Jazz</span>
+            <h3 class="text-display font-semibold">Jazz Piano Foundations</h3>
+            <p>Learn improvisation, swing feel, and complex jazz voicings.</p>
+          </div>
+        </div>
+
+        <div class="course-card" onclick="window.location.href='course.html'">
+          <div class="card-thumb">
+            <img src="https://images.unsplash.com/photo-1594122230689-45899d9e6f69?q=80&w=2070&auto=format&fit=crop" alt="Piano Pop">
+          </div>
+          <div class="card-body">
+            <span class="card-tag">Pop</span>
+            <h3 class="text-display font-semibold">Pop Piano Accompaniment</h3>
+            <p>How to play your favorite hits and accompany singers.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <script src="js/interactions.js"></script>
+</body>
+</html>

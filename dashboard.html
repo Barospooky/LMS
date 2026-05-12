@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LearnForge — Dashboard</title>
+  <link rel="stylesheet" href="css/main.css"/>
+  <link rel="stylesheet" href="css/dashboard.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="dashboard-page">
+
+  <!-- Custom Cursor -->
+  <div class="custom-cursor"></div>
+  <div class="custom-cursor-follower"></div>
+
+  <!-- Sidebar Nav -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <span class="text-display font-bold tracking-tighter">MELODY.</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="nav-item active">
+        <span>01 / My Journey</span>
+      </a>
+      <a href="dashboard.html" class="nav-item">
+        <span>02 / All Courses</span>
+      </a>
+      <a href="dashboard.html" class="nav-item">
+        <span>03 / Practice Room</span>
+      </a>
+      <a href="dashboard.html" class="nav-item">
+        <span>04 / Account</span>
+      </a>
+    </nav>
+    <div class="sidebar-user">
+      <div class="user-avatar" id="sidebar-avatar">M</div>
+      <div class="user-info">
+        <strong id="sidebar-name">Musician</strong>
+        <small class="text-muted">Premium Student</small>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="dash-main">
+
+    <!-- Top Bar -->
+    <header class="dash-header">
+      <div class="header-greet reveal">
+        <h1 class="text-serif tracking-tighter">Welcome back, <span id="user-first">Learner</span>.</h1>
+        <p class="text-secondary">Ready to master your next piece today?</p>
+      </div>
+    </header>
+
+    <!-- Progress Section -->
+    <section class="progress-section reveal" style="animation-delay: 0.2s;">
+      <div class="section-label">CONTINUE PRACTICE</div>
+      <div class="progress-hero">
+        <div class="progress-content">
+          <h2 class="text-serif">Piano Masterclass: Intermediate</h2>
+          <p>Lesson 04: Mastering Arpeggios & Scales</p>
+          <button class="btn-primary magnetic" onclick="window.location.href='course.html'">
+            Resume Practice
+          </button>
+        </div>
+        <div class="progress-visual">
+          <div class="circle-progress">
+            <span class="pct">64%</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Course Grid -->
+    <section class="courses-section reveal" style="animation-delay: 0.4s;">
+      <div class="section-header">
+        <h2 class="text-serif">Your Curriculum</h2>
+      </div>
+
+      <div class="courses-grid">
+        <div class="course-card" onclick="window.location.href='piano.html'">
+          <div class="card-thumb">
+            <img src="https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?q=80&w=2070&auto=format&fit=crop" alt="Piano">
+          </div>
+          <div class="card-body">
+            <span class="card-tag">Classical</span>
+            <h3 class="text-display font-semibold">Classical Piano: Grade 4</h3>
+            <p>Master the techniques and theory of advanced classical pieces.</p>
+          </div>
+        </div>
+
+        <div class="course-card" onclick="window.location.href='guitar.html'">
+          <div class="card-thumb">
+            <img src="https://images.unsplash.com/photo-1510915363646-df03d474d59e?q=80&w=2070&auto=format&fit=crop" alt="Guitar">
+          </div>
+          <div class="card-body">
+            <span class="card-tag">Jazz</span>
+            <h3 class="text-display font-semibold">Jazz Guitar Theory</h3>
+            <p>Explore complex chords, progressions, and improvisational skills.</p>
+          </div>
+        </div>
+
+        <div class="course-card" onclick="window.location.href='vocals.html'">
+          <div class="card-thumb">
+            <img src="https://images.unsplash.com/photo-1516280440614-37939bbdd4f1?q=80&w=2070&auto=format&fit=crop" alt="Vocal">
+          </div>
+          <div class="card-body">
+            <span class="card-tag">Contemporary</span>
+            <h3 class="text-display font-semibold">Contemporary Vocals</h3>
+            <p>Techniques for breath control, range expansion, and performance.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="js/dashboard.js"></script>
+  <script src="js/interactions.js"></script>
+</body>
+</html>

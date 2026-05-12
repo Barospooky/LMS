@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Theory Curriculum - MelodyAcademy</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="dashboard-page">
+
+  <!-- Custom Cursor -->
+  <div class="custom-cursor"></div>
+  <div class="custom-cursor-follower"></div>
+
+  <!-- Sidebar Nav -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <span class="text-display font-bold tracking-tighter">MELODY.</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html" class="nav-item">
+        <span>01 / My Journey</span>
+      </a>
+      <a href="dashboard.html" class="nav-item active">
+        <span>02 / All Courses</span>
+      </a>
+      <a href="dashboard.html" class="nav-item">
+        <span>03 / Practice Room</span>
+      </a>
+      <a href="dashboard.html" class="nav-item">
+        <span>04 / Account</span>
+      </a>
+    </nav>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="dash-main">
+
+    <!-- Top Bar -->
+    <header class="dash-header">
+      <div class="header-greet reveal">
+        <a href="dashboard.html" class="nav-back magnetic" style="margin-bottom: 30px; display: block;">&larr; Back to Dashboard</a>
+        <h1 class="text-serif tracking-tighter">Music Theory Curriculum</h1>
+        <p class="text-secondary">The language of music, explained simply.</p>
+      </div>
+    </header>
+
+    <!-- Course Grid -->
+    <section class="courses-section reveal" style="animation-delay: 0.2s;">
+      <div class="courses-grid">
+
+        <div class="course-card" onclick="window.location.href='course.html'">
+          <div class="card-thumb">
+            <img src="https://images.unsplash.com/photo-1514466750787-51f3e721cca7?q=80&w=2070&auto=format&fit=crop" alt="Music Theory">
+          </div>
+          <div class="card-body">
+            <span class="card-tag">Foundations</span>
+            <h3 class="text-display font-semibold">Music Theory 101</h3>
+            <p>Build a solid foundation in reading and writing music notation.</p>
+          </div>
+        </div>
+
+        <div class="course-card" onclick="window.location.href='course.html'">
+          <div class="card-thumb">
+            <img src="https://images.unsplash.com/photo-1507838153414-b4b713384a76?q=80&w=2070&auto=format&fit=crop" alt="Composition">
+          </div>
+          <div class="card-body">
+            <span class="card-tag">Advanced</span>
+            <h3 class="text-display font-semibold">Advanced Composition</h3>
+            <p>Counterpoint, orchestration, and modern arranging techniques.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <script src="js/interactions.js"></script>
+</body>
+</html>
