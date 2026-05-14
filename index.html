@@ -1,112 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>LearnForge — Master Your Craft</title>
-  <link rel="stylesheet" href="css/main.css" />
-  <link rel="stylesheet" href="css/auth.css" />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
-</head>
-<body class="auth-page">
-
-  <!-- Custom Cursor Elements -->
-  <div class="custom-cursor"></div>
-  <div class="custom-cursor-follower"></div>
-
-  <!-- Navigation -->
-  <nav class="main-nav">
-    <div class="nav-brand">
-      <span class="text-display font-bold tracking-tighter">MELODY.</span>
-    </div>
-    <div class="nav-links">
-      <button class="btn-text" onclick="showAuth('login')">Sign In</button>
-      <button class="btn-outline magnetic" onclick="showAuth('signup')">Get Started</button>
-    </div>
-  </nav>
-
-  <!-- Hero Section -->
-  <main class="hero">
-    <div class="hero-content">
-      <div class="reveal-container">
-        <h1 class="text-serif tracking-tighter reveal">Elevate Your</h1>
-      </div>
-      <div class="reveal-container">
-        <h1 class="text-serif tracking-tighter reveal" style="animation-delay: 0.2s;">Musical Craft.</h1>
-      </div>
-      <p class="hero-subtext reveal" style="animation-delay: 0.4s;">
-        Experience a refined approach to music learning. Professional curriculum, expert guidance, and a community of dedicated artists.
-      </p>
-      <div class="hero-actions reveal" style="animation-delay: 0.6s;">
-        <button class="btn-primary magnetic" onclick="showAuth('signup')">Start Journey</button>
-      </div>
-    </div>
-  </main>
-
-  <!-- Auth Modal Overlay -->
-  <div class="auth-overlay" id="auth-overlay">
-    <div class="auth-container">
-      <button class="auth-close" onclick="hideAuth()">&times;</button>
-      
-      <div class="auth-card">
-        <!-- Tab Switch -->
-        <div class="auth-tabs">
-          <button class="tab-btn active" id="tab-login" onclick="switchTab('login')">Sign In</button>
-          <button class="tab-btn" id="tab-signup" onclick="switchTab('signup')">Join</button>
-        </div>
-
-        <!-- Login Form -->
-        <div class="auth-form active" id="login-form">
-          <div class="form-header">
-            <h2 class="text-serif">Welcome back</h2>
-            <p>Pick up where you left off.</p>
-          </div>
-          <div class="input-group">
-            <input type="email" id="login-email" placeholder="Email Address" />
-          </div>
-          <div class="input-group">
-            <input type="password" id="login-password" placeholder="Password" />
-          </div>
-          <button class="btn-primary" onclick="handleLogin()">Sign In</button>
-
-          <div class="social-divider"><span>Or continue with</span></div>
-
-          <div class="social-btns">
-            <button class="btn-social" onclick="alert('Google login simulated')">
-              <img src="https://www.svgrepo.com/show/355037/google.svg" alt="Google">
-              <span>Google</span>
-            </button>
-            <button class="btn-social" onclick="alert('Apple login simulated')">
-              <img src="https://www.svgrepo.com/show/445771/apple-logo.svg" alt="Apple">
-              <span>Apple</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Signup Form -->
-        <div class="auth-form" id="signup-form">
-          <div class="form-header">
-            <h2 class="text-serif">Start Learning</h2>
-            <p>Join the next generation of musicians.</p>
-          </div>
-          <div class="input-row">
-            <input type="text" id="signup-fname" placeholder="First Name" />
-            <input type="text" id="signup-lname" placeholder="Last Name" />
-          </div>
-          <div class="input-group">
-            <input type="email" id="signup-email" placeholder="Email" />
-          </div>
-          <div class="input-group">
-            <input type="password" id="signup-password" placeholder="Password" />
-          </div>
-          <button class="btn-primary" onclick="handleSignup()">Create Account</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script src="js/auth.js"></script>
-  <script src="js/interactions.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LearnForge — Master Your Craft</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
 </html>

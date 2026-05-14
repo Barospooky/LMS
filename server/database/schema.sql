@@ -1,0 +1,76 @@
+CREATE TABLE IF NOT EXISTS users (
+  id SERIAL PRIMARY KEY,
+  first_name VARCHAR(100) NOT NULL,
+  last_name VARCHAR(100) NOT NULL,
+  email VARCHAR(100) UNIQUE NOT NULL,
+  password_hash VARCHAR(255),
+  auth_provider VARCHAR(50) NOT NULL DEFAULT 'local',
+  google_id VARCHAR(255) UNIQUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS courses (
+  id SERIAL PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  price DECIMAL(10, 2) DEFAULT 0.00,
+  instrument VARCHAR(50),
+  thumbnail VARCHAR(255),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS lessons (
+  id SERIAL PRIMARY KEY,
+  course_id INT NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+  title VARCHAR(255) NOT NULL,
+  video_url VARCHAR(255) NOT NULL,
+  lesson_order INT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS quizzes (
+  id SERIAL PRIMARY KEY,
+  lesson_id INT NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
+  question TEXT NOT NULL,
+  options JSONB NOT NULL,
+  correct_answer VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS user_courses (
+  user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  course_id INT NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+  purchased_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (user_id, course_id)
+);
+
+CREATE TABLE IF NOT EXISTS orders (
+  id SERIAL PRIMARY KEY,
+  user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  course_id INT NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+  gateway VARCHAR(50) NOT NULL,
+  gateway_order_id VARCHAR(255) UNIQUE,
+  amount DECIMAL(10, 2) NOT NULL,
+  currency VARCHAR(10) NOT NULL DEFAULT 'INR',
+  status VARCHAR(30) NOT NULL DEFAULT 'created',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS payments (
+  id SERIAL PRIMARY KEY,
+  order_id INT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  course_id INT NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+  gateway VARCHAR(50) NOT NULL,
+  gateway_payment_id VARCHAR(255) UNIQUE,
+  gateway_signature VARCHAR(255),
+  amount DECIMAL(10, 2) NOT NULL,
+  currency VARCHAR(10) NOT NULL DEFAULT 'INR',
+  status VARCHAR(30) NOT NULL DEFAULT 'pending',
+  paid_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
+CREATE INDEX IF NOT EXISTS idx_orders_course_id ON orders(course_id);
+CREATE INDEX IF NOT EXISTS idx_payments_order_id ON payments(order_id);
+CREATE INDEX IF NOT EXISTS idx_payments_user_id ON payments(user_id);

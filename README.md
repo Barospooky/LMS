@@ -1,91 +1,110 @@
-# ⬡ LearnForge — Course Platform
+# Learnify Music LMS
 
-A full-featured Udemy-like e-learning platform template with a unique dark industrial + electric teal aesthetic.
+Music learning platform with a React frontend, Express backend, and PostgreSQL database.
 
-## 🗂️ Project Structure
+## Project Structure
 
-```
+```text
 learnify/
-├── index.html          — Login / Sign Up page
-├── dashboard.html      — Student dashboard
-├── course.html         — Course player (video + quiz + certificate)
-├── css/
-│   ├── main.css        — Design system & shared styles
-│   ├── auth.css        — Auth page styles
-│   ├── dashboard.css   — Dashboard styles
-│   └── course.css      — Course player + certificate styles
-├── js/
-│   ├── auth.js         — Login/signup logic
-│   ├── dashboard.js    — Dashboard logic
-│   └── course.js       — Video player, quiz engine, certificate
-└── README.md
+|-- src/                  React frontend
+|-- server/               Express backend
+|   |-- config/           Database connection
+|   |-- controllers/      Route logic
+|   |-- middleware/       Auth middleware
+|   |-- routes/           API routes
+|   |-- database/         PostgreSQL schema and seed files
+|   `-- .env.example      Backend environment template
+|-- docker-compose.yml    PostgreSQL container
+|-- package.json          Frontend package
+`-- README.md
 ```
 
-## ✨ Features
+## Database Structure
 
-### Authentication
-- **Sign In** with email/password (demo: any credentials work)
-- **Sign Up** with first/last name, email, password
-- Password strength indicator
-- Session stored in localStorage
-- Auto-redirect if already logged in
+The PostgreSQL database contains these main tables:
 
-### Dashboard
-- Personalized greeting based on time of day
-- Course progress ring with animation
-- Stats: courses enrolled, certificates, hours, XP
-- Course grid: in-progress, completed, explore
-- Filter tabs
-- Sidebar with nav + logout
+1. `users` for student accounts
+2. `courses` for instrument courses
+3. `lessons` for videos inside each course
+4. `quizzes` for lesson questions
+5. `user_courses` for purchased or enrolled courses
 
-### Course Player
-- **3-column layout**: Curriculum sidebar | Video + Quiz | Related videos
-- Simulated video player with progress bar, play/pause, speed control, seek
-- Curriculum sidebar with section groupings and completion tracking
-- "Up Next" related lessons in right panel
-- Streak tracker
+Schema file:
 
-### Quiz System
-- Multiple-choice questions after each video
-- Option highlighting (correct = green, wrong = red)
-- Explanation shown after answering
-- Multi-question flow with progress dots
-- Score summary
+- [server/database/schema.sql](/D:/ms/learnify-platform/learnify/server/database/schema.sql)
 
-### Certificate Generation
-- **Auto-generated** on course completion
-- Professional print-quality certificate design
-- Student name and course name populated dynamically
-- "Download Certificate" opens print dialog
-- Gold seal and signature lines
+Seed file:
 
-## 🎨 Design Language
-- **Palette**: Deep black (#0a0a0f) + Electric Teal (#00e5c4) accent
-- **Typography**: Bebas Neue (display) + DM Sans (body) + JetBrains Mono (code)
-- **Style**: Dark industrial, grid backgrounds, animated orbs, noise texture
-- Pure HTML/CSS/JS — no build tools or frameworks needed
+- [server/database/seed.sql](/D:/ms/learnify-platform/learnify/server/database/seed.sql)
 
-## 🚀 Getting Started
+## Run PostgreSQL
 
-Just open `index.html` in any modern browser. No server needed.
+Start PostgreSQL with Docker:
 
-For best experience, use a local server:
 ```bash
-# Python
-python -m http.server 3000
-
-# Node.js
-npx serve .
+docker compose up -d
 ```
 
-Then open: http://localhost:3000
+The database container uses:
 
-## 📝 Demo Credentials
-Any email and password will work on the login form.
-Sign up creates a new account with your entered name.
+```env
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=password
+POSTGRES_DB=lms_db
+```
 
-## 🔧 Customization
-- Add more courses by editing the `courseData` object in `js/course.js`
-- Add quiz questions in the `quizzes` object
-- Modify colors in `css/main.css` (CSS variables at the top)
-- Swap fonts by changing the Google Fonts import
+Create your backend env file:
+
+```bash
+copy server\.env.example server\.env
+```
+
+Then run the backend:
+
+```bash
+cd server
+npm install
+npm run dev
+```
+
+Run the frontend in another terminal:
+
+```bash
+npm run dev
+```
+
+When the backend starts, it automatically creates the schema and sample course data from:
+
+- `server/database/schema.sql`
+- `server/database/seed.sql`
+
+## Connect In pgAdmin
+
+Create a new server in pgAdmin with these values:
+
+1. `Name`: `Learnify PostgreSQL`
+2. `Host name/address`: `localhost`
+3. `Port`: `5432`
+4. `Maintenance database`: `lms_db`
+5. `Username`: `postgres`
+6. `Password`: `password`
+
+After connecting, open:
+
+`Servers > Learnify PostgreSQL > Databases > lms_db > Schemas > public > Tables`
+
+You should see:
+
+- `users`
+- `courses`
+- `lessons`
+- `quizzes`
+- `user_courses`
+
+## Assignment Separation
+
+This project is now clearly separated into:
+
+1. Frontend: `src/`
+2. Backend: `server/`
+3. Database: `server/database/`
