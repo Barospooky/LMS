@@ -197,7 +197,7 @@ const Dashboard = () => {
                         <h3 className="text-display font-semibold">{course.title}</h3>
                         <p>{course.description}</p>
                         <div className="card-footer">
-                          <span className="price">{course.isPurchased ? 'Owned' : `$${course.price}`}</span>
+                          <span className="price">{course.isPurchased ? 'Owned' : `₹${course.price}`}</span>
                           <span className="buy-now">{course.isPurchased ? 'Open Course' : 'View Details'}</span>
                         </div>
                       </div>

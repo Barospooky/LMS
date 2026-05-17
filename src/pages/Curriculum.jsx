@@ -218,7 +218,7 @@ const Curriculum = () => {
 
           <aside className="purchase-card" style={{ height: 'fit-content', position: 'sticky', top: '40px' }}>
             <img src={buildCourseArtwork(course)} alt={course.title} />
-            <div className="price-tag">{course.isPurchased ? 'Already Owned' : `$${course.price}`}</div>
+            <div className="price-tag">{course.isPurchased ? 'Already Owned' : `₹${course.price}`}</div>
             <p className="text-secondary" style={{ marginBottom: '16px' }}>
               {course.isPurchased
                 ? 'This course is unlocked. Continue into the lesson player and keep building progress.'

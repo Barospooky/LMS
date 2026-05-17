@@ -66,6 +66,7 @@ export const createOrder = async (req, res) => {
     const razorpayOrder = await razorpayResponse.json();
 
     if (!razorpayResponse.ok) {
+      console.error('Razorpay Order Error:', razorpayOrder);
       return res.status(500).json({
         message: 'Failed to create Razorpay order',
         error: razorpayOrder?.error?.description || razorpayOrder,

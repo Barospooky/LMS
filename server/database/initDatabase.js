@@ -12,29 +12,40 @@ const seedPath = path.join(__dirname, 'seed.sql');
 
 export const initDatabase = async () => {
   const { Pool } = pg;
+  const useConnectionString = Boolean(process.env.DATABASE_URL);
+  const useSsl =
+    process.env.DB_SSL === 'true' ||
+    process.env.NODE_ENV === 'production' ||
+    useConnectionString;
   const dbName = process.env.DB_NAME || 'lms';
-  
-  // Create a temporary pool to connect to 'postgres' database to ensure 'lms' exists
-  const tempPool = new Pool({
-    host: process.env.DB_HOST || 'localhost',
-    user: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || '123',
-    port: Number(process.env.DB_PORT) || 5432,
-    database: 'postgres'
-  });
 
-  try {
-    // Check if database exists
-    const res = await tempPool.query(`SELECT 1 FROM pg_database WHERE datname = '${dbName}'`);
-    if (res.rowCount === 0) {
-      console.log(`Database ${dbName} does not exist. Creating...`);
-      await tempPool.query(`CREATE DATABASE ${dbName}`);
-      console.log(`Database ${dbName} created successfully.`);
+  if (!useConnectionString) {
+    // Local Postgres can create the target database if it does not exist yet.
+    const tempPool = new Pool({
+      host: process.env.DB_HOST || 'localhost',
+      user: process.env.DB_USER || 'postgres',
+      password: process.env.DB_PASSWORD || '123',
+      port: Number(process.env.DB_PORT) || 5432,
+      database: 'postgres',
+      ssl: useSsl ? { rejectUnauthorized: false } : false,
+    });
+
+    try {
+      const res = await tempPool.query(
+        `SELECT 1 FROM pg_database WHERE datname = '${dbName}'`
+      );
+      if (res.rowCount === 0) {
+        console.log(`Database ${dbName} does not exist. Creating...`);
+        await tempPool.query(`CREATE DATABASE ${dbName}`);
+        console.log(`Database ${dbName} created successfully.`);
+      }
+    } catch (error) {
+      console.error('Error checking/creating database:', error.message);
+    } finally {
+      await tempPool.end();
     }
-  } catch (error) {
-    console.error('Error checking/creating database:', error.message);
-  } finally {
-    await tempPool.end();
+  } else {
+    console.log('Using managed PostgreSQL via DATABASE_URL; skipping CREATE DATABASE step.');
   }
 
   try {
@@ -58,6 +69,12 @@ export const initDatabase = async () => {
     } catch (e) { /* ignore if already applied */ }
 
     // Run seed
+    // Update prices before seeding to ensure they meet the minimum requirement
+    await pool.query("UPDATE courses SET price = 1499.00 WHERE title = 'Piano Masterclass'");
+    await pool.query("UPDATE courses SET price = 1299.00 WHERE title = 'Guitar Fundamentals'");
+    await pool.query("UPDATE courses SET price = 1099.00 WHERE title = 'Flute Tutorial'");
+    await pool.query("UPDATE courses SET price = 1999.00 WHERE title = 'Violin Masterclass'");
+    
     await pool.query(seedSql);
 
     console.log('PostgreSQL schema and seed data are ready');

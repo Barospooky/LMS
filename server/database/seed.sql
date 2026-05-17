@@ -2,7 +2,7 @@ INSERT INTO courses (title, description, price, instrument, thumbnail)
 SELECT
   'Piano Masterclass',
   'Master the piano with these structured lessons.',
-  49.99,
+  1499.00,
   'piano',
   'https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?q=80&w=2070&auto=format&fit=crop'
 WHERE NOT EXISTS (
@@ -40,7 +40,7 @@ INSERT INTO courses (title, description, price, instrument, thumbnail)
 SELECT
   'Guitar Fundamentals',
   'Learn the basics of acoustic and electric guitar.',
-  39.99,
+  1299.00,
   'guitar',
   'https://images.unsplash.com/photo-1510915363646-df03d474d59e?q=80&w=2070&auto=format&fit=crop'
 WHERE NOT EXISTS (
@@ -78,7 +78,7 @@ INSERT INTO courses (title, description, price, instrument, thumbnail)
 SELECT
   'Flute Tutorial',
   'Breath control and fingerings for the flute.',
-  29.99,
+  1099.00,
   'flute',
   'https://images.unsplash.com/photo-1573510317511-620257835064?q=80&w=2070&auto=format&fit=crop'
 WHERE NOT EXISTS (
@@ -117,7 +117,7 @@ INSERT INTO courses (title, description, price, instrument, thumbnail)
 SELECT
   'Violin Masterclass',
   'Master the bow and strings.',
-  59.99,
+  1999.00,
   'violin',
   'https://images.unsplash.com/photo-1612225232501-9b5afb400005?q=80&w=2070&auto=format&fit=crop'
 WHERE NOT EXISTS (

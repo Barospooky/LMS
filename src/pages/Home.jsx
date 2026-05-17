@@ -8,12 +8,6 @@ import useMagnetic from '../hooks/useMagnetic';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
-const AppleIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-    <path d="M16.37 12.2c.02 2.18 1.92 2.91 1.94 2.92-.02.05-.3 1.03-.99 2.04-.6.87-1.21 1.74-2.18 1.75-.95.02-1.26-.56-2.35-.56-1.1 0-1.44.54-2.33.58-.94.03-1.65-.94-2.25-1.8-1.22-1.76-2.16-4.97-.9-7.16.63-1.09 1.74-1.79 2.95-1.8.92-.02 1.79.62 2.35.62.56 0 1.6-.77 2.7-.66.46.02 1.76.18 2.6 1.42-.07.04-1.55.9-1.54 2.65ZM14.34 6.8c.5-.6.84-1.43.75-2.26-.72.03-1.6.48-2.12 1.08-.46.53-.87 1.38-.76 2.2.81.06 1.63-.41 2.13-1.02Z" />
-  </svg>
-);
-
 const Home = () => {
   const navigate = useNavigate();
   const [authTab, setAuthTab] = useState('login');
@@ -259,13 +253,9 @@ const Home = () => {
                   <div className="social-divider"><span>Or continue with</span></div>
 
                   <div className="social-btns">
-                    <button type="button" className="btn-social" onClick={handleGoogleLogin} disabled={loading}>
+                    <button type="button" className="btn-social" onClick={handleGoogleLogin} disabled={loading} style={{ gridColumn: 'span 2' }}>
                       <img src="https://www.svgrepo.com/show/355037/google.svg" alt="Google" />
-                      <span>Google</span>
-                    </button>
-                    <button type="button" className="btn-social" onClick={() => setError('Apple sign-in is not connected yet.')}>
-                      <AppleIcon />
-                      <span>Apple</span>
+                      <span>Continue with Google</span>
                     </button>
                   </div>
                   <p className="auth-footnote">Once logged in, students can browse courses, purchase access, and unlock every module.</p>
@@ -319,13 +309,9 @@ const Home = () => {
                   <div className="social-divider"><span>Or join with</span></div>
 
                   <div className="social-btns">
-                    <button type="button" className="btn-social" onClick={handleGoogleLogin} disabled={loading}>
+                    <button type="button" className="btn-social" onClick={handleGoogleLogin} disabled={loading} style={{ gridColumn: 'span 2' }}>
                       <img src="https://www.svgrepo.com/show/355037/google.svg" alt="Google" />
-                      <span>Google</span>
-                    </button>
-                    <button type="button" className="btn-social" onClick={() => setError('Apple sign-in is not connected yet.')}>
-                      <AppleIcon />
-                      <span>Apple</span>
+                      <span>Join with Google</span>
                     </button>
                   </div>
                   <p className="auth-footnote">Students unlock video modules, complete quizzes, and receive a certificate at the end.</p>

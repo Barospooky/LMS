@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import jsPDF from 'jspdf';
 import '../styles/main.css';
 import '../styles/course.css';
 import Reveal from '../components/Reveal';
@@ -26,7 +27,109 @@ const Course = () => {
   const [courseProgress, setCourseProgress] = useState(getStoredProgress(courseId));
   const [showCertificate, setShowCertificate] = useState(false);
   const [videoCompleted, setVideoCompleted] = useState(false);
+  const [isDownloadingCertificate, setIsDownloadingCertificate] = useState(false);
   const btnBack = useMagnetic();
+  const certificateRef = useRef(null);
+
+  const downloadCertificate = async () => {
+    if (!course || isDownloadingCertificate) return;
+
+    try {
+      setIsDownloadingCertificate(true);
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4',
+      });
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const margin = 10;
+      const innerMargin = 16;
+      const accent = '#c7772d';
+      const textColor = '#1a1a1a';
+      const subtitleColor = '#666666';
+      const studentName = `${user?.firstName || 'Student'} ${user?.lastName || ''}`.trim();
+      const completionDate = new Date().toLocaleDateString('en-GB');
+
+      pdf.setFillColor(255, 250, 240);
+      pdf.rect(0, 0, pdfWidth, pdfHeight, 'F');
+      pdf.setDrawColor(215, 197, 168);
+      pdf.setLineWidth(0.5);
+      pdf.rect(margin, margin, pdfWidth - (margin * 2), pdfHeight - (margin * 2));
+      pdf.setDrawColor(60, 60, 60);
+      pdf.setLineWidth(0.2);
+      pdf.rect(innerMargin, innerMargin, pdfWidth - (innerMargin * 2), pdfHeight - (innerMargin * 2));
+
+      pdf.setTextColor(textColor);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(22);
+      pdf.text('MELODY.', pdfWidth / 2, 34, { align: 'center' });
+
+      pdf.setTextColor(accent);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(10);
+      pdf.text('CERTIFICATE OF MUSICAL COMPLETION', pdfWidth / 2, 44, { align: 'center' });
+
+      pdf.setTextColor(subtitleColor);
+      pdf.setFontSize(14);
+      pdf.text('This certifies that', pdfWidth / 2, 72, { align: 'center' });
+
+      pdf.setTextColor(textColor);
+      pdf.setFont('times', 'bold');
+      pdf.setFontSize(28);
+      pdf.text(studentName, pdfWidth / 2, 92, { align: 'center' });
+
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(subtitleColor);
+      pdf.setFontSize(13);
+      pdf.text('has successfully completed the course', pdfWidth / 2, 108, { align: 'center' });
+
+      pdf.setTextColor(textColor);
+      pdf.setFontSize(20);
+      pdf.text(course.title, pdfWidth / 2, 124, { align: 'center' });
+
+      pdf.setTextColor(subtitleColor);
+      pdf.setFontSize(12);
+      pdf.text('including all lesson videos and their related quiz modules.', pdfWidth / 2, 140, { align: 'center' });
+
+      pdf.setDrawColor(accent);
+      pdf.setLineWidth(0.6);
+      pdf.circle(pdfWidth / 2, 164, 10);
+      pdf.setTextColor(accent);
+      pdf.setFont('times', 'bold');
+      pdf.setFontSize(18);
+      pdf.text('\u266A', pdfWidth / 2, 167, { align: 'center' });
+
+      pdf.setDrawColor(120, 120, 120);
+      pdf.setLineWidth(0.25);
+      pdf.line(36, 178, 82, 178);
+      pdf.line(pdfWidth - 82, 178, pdfWidth - 36, 178);
+
+      pdf.setTextColor(textColor);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(10);
+      pdf.text('Lead Instructor', 36, 186);
+      pdf.text('Melody Conservatory', 36, 192);
+
+      pdf.text(completionDate, pdfWidth - 82, 186);
+      pdf.text('Date of completion', pdfWidth - 82, 192);
+
+      const pdfBlob = pdf.output('blob');
+      const downloadUrl = URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `${course.title.replace(/\s+/g, '_')}_Certificate.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(downloadUrl);
+    } catch (err) {
+      console.error('PDF Error:', err);
+      alert('Unable to download the certificate as a PDF right now. Please try again.');
+    } finally {
+      setIsDownloadingCertificate(false);
+    }
+  };
 
   const handleVideoComplete = React.useCallback(() => {
     setVideoCompleted(true);
@@ -153,8 +256,9 @@ const Course = () => {
   const progressPercentage = course.lessons.length ? Math.round((completedCount / course.lessons.length) * 100) : 0;
   const scorePercentage = quiz.length ? Math.round((score / quiz.length) * 100) : 0;
   const isCurrentLessonComplete = courseProgress.completedLessons.includes(currentLesson.id);
+  const canAccessQuiz = videoCompleted || isCurrentLessonComplete;
   const isFinalLesson = course.lessons[course.lessons.length - 1]?.id === currentLesson.id;
-  const shouldShowCertificateBlock = courseProgress.certificateEarned && isFinalLesson && quizSubmitted;
+  const shouldShowCertificateBlock = courseProgress.certificateEarned;
 
   return (
     <div className="course-page">
@@ -194,7 +298,7 @@ const Course = () => {
                     <div className="curr-copy">
                       <span className="curr-step">Module {lesson.lesson_order}</span>
                       <span className="curr-title">{lesson.title}</span>
-                      <span className="curr-note">{isActive ? 'Now playing' : isCompleted ? 'Completed' : 'Upcoming'}</span>
+                      <span className="curr-note">{isCompleted ? 'Completed' : isActive ? 'Now playing' : 'Upcoming'}</span>
                     </div>
                   </div>
                 );
@@ -233,7 +337,7 @@ const Course = () => {
                     </div>
                     <div className="summary-box">
                       <span>Video status</span>
-                      <strong>{videoCompleted ? 'Finished' : 'Watching'}</strong>
+                      <strong>{videoCompleted ? 'Finished' : isCurrentLessonComplete ? 'Review Mode' : 'Watching'}</strong>
                     </div>
                     <div className="summary-box">
                       <span>Certificate</span>
@@ -243,9 +347,23 @@ const Course = () => {
                 </div>
               </Reveal>
 
+              {courseProgress.certificateEarned && (
+                <Reveal delay="0.15s">
+                  <div className="completion-card" style={{ marginBottom: '20px' }}>
+                    <strong>Certificate unlocked</strong>
+                    <p className="text-secondary" style={{ marginTop: '8px' }}>
+                      Your certificate stays available even when you come back to rewatch lessons or retake quizzes.
+                    </p>
+                    <div className="completion-actions">
+                      <button className="btn-primary" onClick={() => setShowCertificate(true)}>Open Certificate</button>
+                    </div>
+                  </div>
+                </Reveal>
+              )}
+
               <div className="lesson-tabs">
                 <button className={`ltab ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>Overview</button>
-                <button className={`ltab ${activeTab === 'quiz' ? 'active' : ''}`} onClick={() => setActiveTab('quiz')} disabled={!videoCompleted}>Quiz</button>
+                <button className={`ltab ${activeTab === 'quiz' ? 'active' : ''}`} onClick={() => setActiveTab('quiz')} disabled={!canAccessQuiz}>Quiz</button>
               </div>
 
               {activeTab === 'overview' && (
@@ -257,10 +375,16 @@ const Course = () => {
                       <li>Practice the shown technique alongside the instructor.</li>
                       <li>Submit the quiz to mark the lesson complete and move forward.</li>
                     </ul>
-                    {!videoCompleted && (
+                    {!canAccessQuiz && (
                       <div className="video-gate">
                         <strong>Quiz unlocks after the video ends</strong>
                         <p className="text-secondary">The learner watches first, then the system moves attention to the related assessment for that exact lesson.</p>
+                      </div>
+                    )}
+                    {isCurrentLessonComplete && (
+                      <div className="video-gate">
+                        <strong>Lesson already completed</strong>
+                        <p className="text-secondary">This module stays open for review, so the learner can rewatch the video and retake the quiz anytime.</p>
                       </div>
                     )}
                   </div>
@@ -270,7 +394,7 @@ const Course = () => {
               {activeTab === 'quiz' && (
                 <Reveal delay="0.2s">
                   <div className="ltab-content active">
-                    {!videoCompleted ? (
+                    {!canAccessQuiz ? (
                       <div className="quiz-locked">
                         <strong>Finish the lesson video first</strong>
                         <p className="text-secondary">As soon as the video completes, this lesson’s question set will open automatically.</p>
@@ -348,7 +472,7 @@ const Course = () => {
         <div className="cert-modal">
           <div className="cert-overlay" onClick={() => setShowCertificate(false)}></div>
           <div className="cert-container">
-            <div className="certificate">
+            <div className="certificate" ref={certificateRef}>
               <div className="cert-border-outer">
                 <div className="cert-border-inner">
                   <div className="cert-top">
@@ -382,7 +506,9 @@ const Course = () => {
               </div>
             </div>
             <div className="cert-actions">
-              <button className="btn-primary" onClick={() => window.print()}>Download Certificate</button>
+              <button className="btn-primary" onClick={downloadCertificate} disabled={isDownloadingCertificate}>
+                {isDownloadingCertificate ? 'Preparing PDF...' : 'Download Certificate'}
+              </button>
               <button className="btn-outline" onClick={() => setShowCertificate(false)}>Close</button>
             </div>
           </div>
