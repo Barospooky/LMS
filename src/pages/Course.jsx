@@ -61,7 +61,7 @@ const Course = () => {
       pdf.rect(innerMargin, innerMargin, pdfWidth - (innerMargin * 2), pdfHeight - (innerMargin * 2));
 
       pdf.setTextColor(textColor);
-      pdf.setFont('helvetica', 'bold');
+      pdf.setFont('times', 'bolditalic');
       pdf.setFontSize(22);
       pdf.text('MELODY.', pdfWidth / 2, 34, { align: 'center' });
 
@@ -476,7 +476,7 @@ const Course = () => {
               <div className="cert-border-outer">
                 <div className="cert-border-inner">
                   <div className="cert-top">
-                    <div className="cert-logo">MELODY.</div>
+                    <div className="cert-logo brand-logo">MELODY.</div>
                     <div className="cert-subtitle">Certificate of Musical Completion</div>
                   </div>
                   <div className="cert-divider"></div>

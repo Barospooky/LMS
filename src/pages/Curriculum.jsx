@@ -151,13 +151,15 @@ const Curriculum = () => {
     <div className="dashboard-page">
       <aside className="sidebar">
         <div className="sidebar-brand">
-          <span className="text-display font-bold tracking-tighter">MELODY.</span>
-          <small>Conservatory dashboard</small>
+          <div className="brand-text">
+            <span className="brand-logo tracking-tighter">MELODY.</span>
+            <small>Member area</small>
+          </div>
         </div>
         <div className="sidebar-spotlight">
-          <span className="sidebar-kicker">Selected program</span>
+          <span className="sidebar-kicker">Barani's studio</span>
           <strong>{course?.title || 'Course details'}</strong>
-          <p>Purchase unlocks every video, each related module question, and the final course certificate.</p>
+          <p>Track progress, resume active modules, and unlock certificates.</p>
         </div>
         <nav className="sidebar-nav">
           <a href="#" className="nav-item active" onClick={(e) => { e.preventDefault(); navigate('/dashboard'); }}>
@@ -173,7 +175,7 @@ const Curriculum = () => {
         <header className="dash-header">
           <Reveal>
             <div className="header-greet">
-              <button ref={btnBack} className="nav-back magnetic" style={{ marginBottom: '24px', display: 'inline-flex' }} onClick={() => navigate('/dashboard')}>
+              <button ref={btnBack} className="nav-back magnetic" style={{ marginBottom: '12px', display: 'inline-flex' }} onClick={() => navigate('/dashboard')}>
                 &larr; Back to Dashboard
               </button>
               <h1 className="text-serif tracking-tighter">{course.title}</h1>
@@ -237,7 +239,6 @@ const Curriculum = () => {
               <span>Full lifetime access</span>
               <span>Interactive lesson quizzes</span>
               <span>Certificate of completion</span>
-              <span>Use UPI or netbanking in Razorpay test mode for demo purchases</span>
             </div>
           </aside>
         </section>

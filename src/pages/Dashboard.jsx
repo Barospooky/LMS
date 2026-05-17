@@ -70,14 +70,14 @@ const Dashboard = () => {
             <Music size={18} className="icon-accent" />
           </div>
           <div className="brand-text">
-            <span className="text-display font-bold tracking-tighter">MELODY.</span>
-            <small>Conservatory dashboard</small>
+            <span className="brand-logo tracking-tighter">MELODY.</span>
+            <small>Member area</small>
           </div>
         </div>
         <div className="sidebar-spotlight">
           <span className="sidebar-kicker">Member area</span>
-          <strong>{user ? `${user.firstName}'s studio` : 'Student studio'}</strong>
-          <p>Track enrollments, continue active modules, and unlock certificates as each musical pathway is completed.</p>
+          <strong>Barani's studio</strong>
+          <p>Track progress, resume active modules, and unlock certificates.</p>
         </div>
         <nav className="sidebar-nav">
           <a href="#" className="nav-item active" onClick={(e) => { e.preventDefault(); navigate('/dashboard'); }}>

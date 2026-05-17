@@ -177,7 +177,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) 300px;
   gap: 24px;
-  padding: 34px;
+  padding: 24px 34px 34px;
 }
 
 .header-greet h1 {
@@ -444,12 +444,12 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) 340px;
   gap: 22px;
-  padding: 34px;
+  padding: 34px 34px 24px;
 }
 
 .curriculum-list,
 .purchase-card {
-  padding: 26px;
+  padding: 26px 26px 20px;
   border-radius: 28px;
   background: rgba(255, 250, 242, 0.88);
   border: 1px solid rgba(23, 20, 17, 0.08);

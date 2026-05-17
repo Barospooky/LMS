@@ -164,12 +164,11 @@ const Home = () => {
             <Music className="icon-accent" size={24} />
           </div>
           <div className="brand-text">
-            <span className="text-display font-bold tracking-tighter">MELODY.</span>
+            <span className="brand-logo tracking-tighter">MELODY.</span>
             <span className="brand-note">Music learning atelier</span>
           </div>
         </div>
         <div className="nav-links">
-          <button className="btn-text" onClick={() => switchTab('login')}>Sign In</button>
           <button ref={btnGetStarted} className="btn-outline magnetic" onClick={() => switchTab('signup')}>Get Started</button>
         </div>
       </nav>
