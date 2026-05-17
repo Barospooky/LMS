@@ -22,13 +22,32 @@
 
 .sidebar-brand {
   display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.brand-icon-small {
+  width: 36px;
+  height: 36px;
+  background: rgba(183, 106, 47, 0.15);
+  border: 1px solid rgba(183, 106, 47, 0.3);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
+.brand-text {
+  display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 18px;
 }
 
 .sidebar-brand span {
-  font-size: 28px;
+  font-size: 24px;
+  line-height: 1;
 }
 
 .sidebar-brand small,
@@ -113,6 +132,28 @@
   justify-content: center;
   font-family: var(--font-display);
   font-weight: 700;
+  flex-shrink: 0;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.user-info strong {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 15px;
+}
+
+.user-info small {
+  display: block;
+  font-size: 12px;
+  color: rgba(255, 248, 241, 0.5);
 }
 
 .dash-main {
@@ -308,14 +349,22 @@
   overflow: hidden;
   border-radius: 22px;
   margin-bottom: 18px;
-  background: linear-gradient(135deg, rgba(58,42,35,0.92), rgba(183,106,47,0.62));
+  position: relative;
+}
+
+.card-thumb::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 40%, rgba(20, 14, 10, 0.4) 100%);
+  pointer-events: none;
 }
 
 .card-thumb img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.7s ease;
+  transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .course-card:hover .card-thumb img {
@@ -441,7 +490,8 @@
   height: 210px;
   object-fit: cover;
   margin-bottom: 18px;
-  background: linear-gradient(135deg, rgba(58,42,35,0.92), rgba(183,106,47,0.62));
+  position: relative;
+  box-shadow: var(--shadow-md);
 }
 
 .price-tag {

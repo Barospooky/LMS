@@ -4,7 +4,7 @@ SELECT
   'Master the piano with these structured lessons.',
   1499.00,
   'piano',
-  'https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?q=80&w=2070&auto=format&fit=crop'
+  'https://i.pinimg.com/736x/2b/23/d0/2b23d043f1697268576f30e9d1678103.jpg'
 WHERE NOT EXISTS (
   SELECT 1 FROM courses WHERE title = 'Piano Masterclass'
 );
@@ -42,7 +42,7 @@ SELECT
   'Learn the basics of acoustic and electric guitar.',
   1299.00,
   'guitar',
-  'https://images.unsplash.com/photo-1510915363646-df03d474d59e?q=80&w=2070&auto=format&fit=crop'
+  'https://i.pinimg.com/736x/f2/63/66/f2636671751b616380bf29da0567fe30.jpg'
 WHERE NOT EXISTS (
   SELECT 1 FROM courses WHERE title = 'Guitar Fundamentals'
 );
@@ -80,7 +80,7 @@ SELECT
   'Breath control and fingerings for the flute.',
   1099.00,
   'flute',
-  'https://images.unsplash.com/photo-1573510317511-620257835064?q=80&w=2070&auto=format&fit=crop'
+  'https://i.pinimg.com/736x/47/c7/4a/47c74a40ae1c9c85173c228cc4d4fa6f.jpg'
 WHERE NOT EXISTS (
   SELECT 1 FROM courses WHERE title = 'Flute Tutorial'
 );
@@ -119,7 +119,7 @@ SELECT
   'Master the bow and strings.',
   1999.00,
   'violin',
-  'https://images.unsplash.com/photo-1612225232501-9b5afb400005?q=80&w=2070&auto=format&fit=crop'
+  'https://i.pinimg.com/1200x/41/c0/c7/41c0c7371e634fb47729339c291ae15e.jpg'
 WHERE NOT EXISTS (
   SELECT 1 FROM courses WHERE title = 'Violin Masterclass'
 );

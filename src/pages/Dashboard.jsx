@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Music } from 'lucide-react';
 import '../styles/main.css';
 import '../styles/dashboard.css';
 import Reveal from '../components/Reveal';
@@ -65,8 +66,13 @@ const Dashboard = () => {
     <div className="dashboard-page">
       <aside className="sidebar">
         <div className="sidebar-brand">
-          <span className="text-display font-bold tracking-tighter">MELODY.</span>
-          <small>Conservatory dashboard</small>
+          <div className="brand-icon-small">
+            <Music size={18} className="icon-accent" />
+          </div>
+          <div className="brand-text">
+            <span className="text-display font-bold tracking-tighter">MELODY.</span>
+            <small>Conservatory dashboard</small>
+          </div>
         </div>
         <div className="sidebar-spotlight">
           <span className="sidebar-kicker">Member area</span>

@@ -82,28 +82,24 @@ body {
 
 @media (pointer: fine) {
   .custom-cursor {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     position: fixed;
-    width: 10px;
-    height: 10px;
-    background: var(--accent);
-    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    color: var(--accent);
+    background: transparent;
+    border: none;
     pointer-events: none;
     z-index: 9999;
-    mix-blend-mode: multiply;
-    transition: transform 0.08s ease;
+    mix-blend-mode: normal;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.3s ease;
   }
 
-  .custom-cursor-follower {
-    display: block;
-    position: fixed;
-    width: 44px;
-    height: 44px;
-    border: 1px solid rgba(183, 106, 47, 0.45);
-    border-radius: 50%;
-    pointer-events: none;
-    z-index: 9998;
-    transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), background 0.24s ease;
+  .custom-cursor.hover {
+    color: var(--primary);
+    transform: scale(1.6);
   }
 }
 
@@ -129,6 +125,14 @@ body {
 
 .text-muted {
   color: var(--text-muted);
+}
+
+.text-accent {
+  color: var(--accent);
+}
+
+.icon-accent {
+  color: var(--accent);
 }
 
 .btn-primary,

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Music, Music2, Mic2, Guitar, Piano, Drum, Sparkles, GraduationCap, PlayCircle, BookOpen } from 'lucide-react';
 import '../styles/main.css';
 import '../styles/auth.css';
 import Reveal from '../components/Reveal';
@@ -159,8 +160,13 @@ const Home = () => {
     <div className="auth-page">
       <nav className="main-nav">
         <div className="nav-brand">
-          <span className="text-display font-bold tracking-tighter">MELODY.</span>
-          <span className="brand-note">Music learning atelier</span>
+          <div className="brand-icon">
+            <Music className="icon-accent" size={24} />
+          </div>
+          <div className="brand-text">
+            <span className="text-display font-bold tracking-tighter">MELODY.</span>
+            <span className="brand-note">Music learning atelier</span>
+          </div>
         </div>
         <div className="nav-links">
           <button className="btn-text" onClick={() => switchTab('login')}>Sign In</button>
@@ -172,40 +178,58 @@ const Home = () => {
         <section className="hero-panel">
           <div className="hero-copy">
             <Reveal>
-              <div className="eyebrow">Editorial music LMS</div>
+              <div className="eyebrow">
+                <Sparkles size={12} className="icon-accent" />
+                Editorial music LMS
+              </div>
             </Reveal>
             <Reveal delay="0.1s">
-              <h1 className="hero-title text-serif tracking-tighter">Elevate your musical craft.</h1>
+              <h1 className="hero-title text-serif tracking-tighter">
+                Elevate your <br />
+                <span className="text-accent">musical craft.</span>
+              </h1>
             </Reveal>
             <Reveal delay="0.2s">
               <p className="hero-subtext">
                 A premium music-learning platform where students create an account, explore instrument programs, purchase access, watch lesson videos, answer module questions, and earn a certificate when the course is complete.
               </p>
             </Reveal>
-            <Reveal delay="0.3s">
-              <div className="hero-actions">
-                <button ref={btnStartJourney} className="btn-primary magnetic" onClick={() => switchTab('signup')}>Start Journey</button>
-                <button className="btn-outline" onClick={() => switchTab('login')}>Student Login</button>
-              </div>
-            </Reveal>
           </div>
 
           <Reveal delay="0.4s">
             <div className="hero-strip">
               <div className="hero-metric">
+                <div className="metric-icon">
+                  <Music2 size={20} />
+                </div>
                 <strong>4</strong>
                 <span>Instrument-led learning paths</span>
               </div>
               <div className="hero-metric">
+                <div className="metric-icon">
+                  <PlayCircle size={20} />
+                </div>
                 <strong>Module</strong>
                 <span>Video + quiz structure for every lesson</span>
               </div>
               <div className="hero-metric">
+                <div className="metric-icon">
+                  <GraduationCap size={20} />
+                </div>
                 <strong>Certificate</strong>
                 <span>Generated at the end of each course</span>
               </div>
             </div>
           </Reveal>
+
+          {/* Decorative Music Symbols */}
+          <div className="floating-symbols">
+            <Music className="symbol s-1" size={40} />
+            <Mic2 className="symbol s-2" size={32} />
+            <Guitar className="symbol s-3" size={48} />
+            <Piano className="symbol s-4" size={36} />
+            <Drum className="symbol s-5" size={44} />
+          </div>
         </section>
 
         <aside className="auth-shell">
@@ -247,7 +271,12 @@ const Home = () => {
                     />
                   </div>
                   <button type="submit" className="btn-primary auth-submit" disabled={loading}>
-                    {loading ? 'Signing In...' : 'Sign In'}
+                    {loading ? 'Signing In...' : (
+                      <>
+                        <span>Sign In</span>
+                        <Music2 size={16} />
+                      </>
+                    )}
                   </button>
 
                   <div className="social-divider"><span>Or continue with</span></div>
@@ -303,7 +332,12 @@ const Home = () => {
                     />
                   </div>
                   <button type="submit" className="btn-primary auth-submit" disabled={loading}>
-                    {loading ? 'Creating Account...' : 'Create Account'}
+                    {loading ? 'Creating Account...' : (
+                      <>
+                        <span>Create Account</span>
+                        <Sparkles size={16} />
+                      </>
+                    )}
                   </button>
 
                   <div className="social-divider"><span>Or join with</span></div>

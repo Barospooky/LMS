@@ -68,12 +68,11 @@ export const initDatabase = async () => {
       await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id VARCHAR(255) UNIQUE");
     } catch (e) { /* ignore if already applied */ }
 
-    // Run seed
-    // Update prices before seeding to ensure they meet the minimum requirement
-    await pool.query("UPDATE courses SET price = 1499.00 WHERE title = 'Piano Masterclass'");
-    await pool.query("UPDATE courses SET price = 1299.00 WHERE title = 'Guitar Fundamentals'");
-    await pool.query("UPDATE courses SET price = 1099.00 WHERE title = 'Flute Tutorial'");
-    await pool.query("UPDATE courses SET price = 1999.00 WHERE title = 'Violin Masterclass'");
+    // Update prices and thumbnails before seeding to ensure they meet the minimum requirement and premium aesthetic
+    await pool.query("UPDATE courses SET price = 1499.00, thumbnail = 'https://i.pinimg.com/736x/2b/23/d0/2b23d043f1697268576f30e9d1678103.jpg' WHERE title = 'Piano Masterclass'");
+    await pool.query("UPDATE courses SET price = 1299.00, thumbnail = 'https://i.pinimg.com/736x/f2/63/66/f2636671751b616380bf29da0567fe30.jpg' WHERE title = 'Guitar Fundamentals'");
+    await pool.query("UPDATE courses SET price = 1099.00, thumbnail = 'https://i.pinimg.com/736x/47/c7/4a/47c74a40ae1c9c85173c228cc4d4fa6f.jpg' WHERE title = 'Flute Tutorial'");
+    await pool.query("UPDATE courses SET price = 1999.00, thumbnail = 'https://i.pinimg.com/1200x/41/c0/c7/41c0c7371e634fb47729339c291ae15e.jpg' WHERE title = 'Violin Masterclass'");
     
     await pool.query(seedSql);
 

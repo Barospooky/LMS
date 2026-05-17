@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Music } from 'lucide-react';
 
 const CustomCursor = () => {
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -34,16 +35,11 @@ const CustomCursor = () => {
       <div 
         className={`custom-cursor ${hovered ? 'hover' : ''}`} 
         style={{ 
-          transform: `translate3d(${position.x - 4}px, ${position.y - 4}px, 0) scale(${hovered ? 2 : 1})` 
+          transform: `translate3d(${position.x - 12}px, ${position.y - 12}px, 0)` 
         }}
-      ></div>
-      <div 
-        className={`custom-cursor-follower ${hovered ? 'hover' : ''}`} 
-        style={{ 
-          transform: `translate3d(${position.x - 20}px, ${position.y - 20}px, 0) scale(${hovered ? 1.5 : 1})`,
-          background: hovered ? 'rgba(255, 255, 255, 0.1)' : 'transparent'
-        }}
-      ></div>
+      >
+        <Music size={18} strokeWidth={2.5} />
+      </div>
     </>
   );
 };
