@@ -31,19 +31,22 @@ const PORT = process.env.PORT || 5000;
 const startServer = async () => {
   await initDatabase();
 
-  // Copy signature image from gemini brain to public directory
+  // Optionally copy a signature image into the frontend's public directory.
+  // This keeps local customization possible without hardcoding machine-specific paths.
   try {
     const fs = await import('fs');
     const path = await import('path');
-    const sourcePath = 'C:\\Users\\ELCOT\\.gemini\\antigravity\\brain\\9cc299a1-9224-4559-88b1-0eadeda6a125\\media__1779168901011.png';
-    const destPath = 'd:\\LMS\\LMS\\public\\signature.png';
-    if (fs.existsSync(sourcePath)) {
+    const sourcePath = process.env.SIGNATURE_SOURCE_PATH;
+    const destPath = process.env.SIGNATURE_DEST_PATH || path.resolve(process.cwd(), '..', 'public', 'signature.png');
+    if (sourcePath && fs.existsSync(sourcePath)) {
       const dir = path.dirname(destPath);
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
       }
       fs.copyFileSync(sourcePath, destPath);
-      console.log('Successfully copied user signature to frontend public directory!');
+      console.log('Successfully copied user signature to frontend public directory.');
+    } else if (sourcePath) {
+      console.warn(`Signature source file not found: ${sourcePath}`);
     }
   } catch (err) {
     console.error('Error copying signature:', err);
