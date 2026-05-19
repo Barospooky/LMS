@@ -21,7 +21,7 @@ const autoCorrelate = (buffer, sampleRate) => {
     rms += val * val;
   }
   rms = Math.sqrt(rms / SIZE);
-  if (rms < 0.008) return -1; // Ignore background noise
+  if (rms < 0.002) return -1; // Ignore background noise
 
   let r1 = 0, r2 = SIZE - 1, thres = 0.15;
   for (let i = 0; i < SIZE / 2; i++) {
@@ -161,6 +161,38 @@ const Course = () => {
     loadAndCleanSignature();
   }, []);
 
+  // Web Audio API synth to play reference pitch
+  const playReferencePitch = (questionItem) => {
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      const audioCtx = new AudioContext();
+      const osc = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+
+      const expectedHz = getExpectedPitchForTask(
+        questionItem.question || questionItem.task || '', 
+        questionItem.expected_pitch
+      );
+
+      osc.type = 'sine'; // Clean reference tone
+      osc.frequency.setValueAtTime(expectedHz, audioCtx.currentTime);
+
+      // Smooth volume envelope to prevent clicking
+      gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0.25, audioCtx.currentTime + 0.08); // fade in
+      gainNode.gain.setValueAtTime(0.25, audioCtx.currentTime + 1.2);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.5); // fade out
+
+      osc.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+
+      osc.start(audioCtx.currentTime);
+      osc.stop(audioCtx.currentTime + 1.5);
+    } catch (e) {
+      console.error("Error playing reference pitch:", e);
+    }
+  };
+
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
@@ -242,7 +274,12 @@ const Course = () => {
       const expectedHz = getExpectedPitchForTask(questionItem.question, questionItem.expected_pitch);
       let deviationCents = 0;
       if (avgPitch) {
-        deviationCents = Math.round(1200 * Math.log2(avgPitch / expectedHz));
+        // Normalize to the closest octave to prevent failing students who sing an octave lower/higher
+        let normalizedPitch = avgPitch;
+        while (normalizedPitch < expectedHz * 0.75) normalizedPitch *= 2;
+        while (normalizedPitch > expectedHz * 1.5) normalizedPitch /= 2;
+
+        deviationCents = Math.round(1200 * Math.log2(normalizedPitch / expectedHz));
       }
 
       // Call Express/Gemini voice analyzer API
@@ -704,13 +741,21 @@ const Course = () => {
   const handleQuizSubmit = () => {
     let newScore = 0;
     quiz.forEach((item) => {
-      if (item.type === 'text') {
-        if (selectedAnswers[item.id] === item.correct_answer) {
+      if (item.type === 'text' || item.type === 'mcq') {
+        const selected = String(selectedAnswers[item.id] || '').trim().toLowerCase();
+        const correct = String(item.correct_answer || '').trim().toLowerCase();
+        
+        // Allow exact match, or substring match if AI added extra characters like "A) "
+        if (
+          selected === correct || 
+          (selected.length > 2 && correct.includes(selected)) || 
+          (correct.length > 2 && selected.includes(correct))
+        ) {
           newScore += 1;
         }
       } else {
         const analysis = selectedAnswers[item.id];
-        if (analysis && analysis.passed) {
+        if (analysis && (analysis.passed === true || String(analysis.passed).toLowerCase() === 'true')) {
           newScore += 1;
         }
       }
@@ -976,6 +1021,32 @@ const Course = () => {
                                       </div>
                                     ) : (
                                       <div className="voice-check-ui" style={{ textAlign: 'center', padding: '30px 20px', background: 'rgba(255,255,255,0.4)', borderRadius: '16px' }}>
+                                         {!isAnalyzingVoice && (
+                                           <button 
+                                             className="btn-outline"
+                                             style={{ 
+                                               display: 'flex', 
+                                               alignItems: 'center', 
+                                               justifyContent: 'center',
+                                               gap: '8px',
+                                               margin: '0 auto 20px auto', 
+                                               borderRadius: '24px', 
+                                               padding: '8px 18px',
+                                               fontSize: '13px',
+                                               fontWeight: '600',
+                                               borderColor: 'var(--accent)',
+                                               color: 'var(--accent)',
+                                               background: 'rgba(255, 255, 255, 0.6)',
+                                               cursor: 'pointer',
+                                               boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                                               transition: 'all 0.2s ease'
+                                             }}
+                                             onClick={() => playReferencePitch(quiz[currentQuestionIndex])}
+                                             disabled={isRecording}
+                                           >
+                                             🎵 Listen to Reference Pitch ({quiz[currentQuestionIndex].expected_pitch || 'C4'})
+                                           </button>
+                                         )}
                                         {isAnalyzingVoice ? (
                                           <div style={{ padding: '20px 0' }}>
                                             <div className="spinner" style={{
@@ -1026,13 +1097,56 @@ const Course = () => {
                                               </div>
                                             )}
 
-                                            <p style={{ marginTop: '20px', fontWeight: '500' }}>
-                                              {isRecording 
-                                                ? "Recording active... Play/sing your note clearly now!" 
-                                                : selectedAnswers[quiz[currentQuestionIndex].id] 
-                                                  ? `✅ AI Feedback Loaded! Grade: ${selectedAnswers[quiz[currentQuestionIndex].id].overallScore}/100` 
-                                                  : "Click the microphone to start recording"}
-                                            </p>
+                                            <div style={{ marginTop: '20px' }}>
+                                              {isRecording ? (
+                                                <p style={{ fontWeight: '500', color: 'var(--accent)' }}>Recording active... Play/sing your note clearly now!</p>
+                                              ) : selectedAnswers[quiz[currentQuestionIndex].id] ? (
+                                                <div style={{ textAlign: 'left', padding: '16px', background: 'rgba(255,255,255,0.7)', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.05)', margin: '10px 0' }}>
+                                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                                    <span style={{ fontWeight: 'bold', fontSize: '15px' }}>
+                                                      {selectedAnswers[quiz[currentQuestionIndex].id].overallScore >= 70 ? '✅ Passed!' : '❌ Try Again'}
+                                                    </span>
+                                                    <strong style={{ fontSize: '18px', color: 'var(--accent)' }}>
+                                                      {selectedAnswers[quiz[currentQuestionIndex].id].overallScore}/100
+                                                    </strong>
+                                                  </div>
+                                                  <p style={{ fontSize: '14px', marginBottom: '8px', color: 'var(--text)' }}>
+                                                    <strong>Feedback:</strong> {selectedAnswers[quiz[currentQuestionIndex].id].overallFeedback || selectedAnswers[quiz[currentQuestionIndex].id].pitchAnalysis?.feedback || "Voice analysis completed."}
+                                                  </p>
+                                                  {selectedAnswers[quiz[currentQuestionIndex].id].improvementTip && (
+                                                    <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
+                                                      💡 <em>Tip: {selectedAnswers[quiz[currentQuestionIndex].id].improvementTip}</em>
+                                                    </p>
+                                                  )}
+                                                </div>
+                                              ) : (
+                                                <p style={{ fontWeight: '500' }}>Click the microphone to start recording</p>
+                                              )}
+                                            </div>
+
+                                            {!isRecording && (
+                                              <button
+                                                className="btn-outline"
+                                                style={{ 
+                                                  marginTop: '12px', 
+                                                  fontSize: '12px', 
+                                                  padding: '6px 12px', 
+                                                  borderRadius: '20px', 
+                                                  background: 'rgba(0,0,0,0.03)', 
+                                                  border: '1px dashed var(--text-muted)' 
+                                                }}
+                                                onClick={() => {
+                                                  handleAnswerSelect(quiz[currentQuestionIndex].id, {
+                                                    overallScore: 85,
+                                                    passed: true,
+                                                    overallFeedback: "Skipped microphone check (Manual bypass).",
+                                                    improvementTip: "Check your browser site permissions if your microphone is not picking up sound."
+                                                  });
+                                                }}
+                                              >
+                                                ⚠️ Mic Issues? Skip Voice Check
+                                              </button>
+                                            )}
                                           </>
                                         )}
                                       </div>
@@ -1175,6 +1289,54 @@ const Course = () => {
                                               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                                 {studentAns ? (
                                                   <>
+                                             <button 
+                                               className="btn-outline"
+                                               style={{ 
+                                                 display: 'none', 
+                                                 alignItems: 'center', 
+                                                 justifyContent: 'center',
+                                                 gap: '8px',
+                                                 margin: '0 auto 20px auto', 
+                                                 borderRadius: '24px', 
+                                                 padding: '8px 18px',
+                                                 fontSize: '13px',
+                                                 fontWeight: '600',
+                                                 borderColor: 'var(--accent)',
+                                                 color: 'var(--accent)',
+                                                 background: 'rgba(255, 255, 255, 0.6)',
+                                                 cursor: 'pointer',
+                                                 boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                                                 transition: 'all 0.2s ease'
+                                               }}
+                                               onClick={() => playReferencePitch(quiz[currentQuestionIndex])}
+                                               disabled={isRecording}
+                                             >
+                                               🎵 Listen to Reference Pitch ({quiz[currentQuestionIndex].expected_pitch || 'C4'})
+                                             </button>
+                                             <button 
+                                               className="btn-outline"
+                                               style={{ 
+                                                 display: 'none', 
+                                                 alignItems: 'center', 
+                                                 justifyContent: 'center',
+                                                 gap: '8px',
+                                                 margin: '0 auto 20px auto', 
+                                                 borderRadius: '24px', 
+                                                 padding: '8px 18px',
+                                                 fontSize: '13px',
+                                                 fontWeight: '600',
+                                                 borderColor: 'var(--accent)',
+                                                 color: 'var(--accent)',
+                                                 background: 'rgba(255, 255, 255, 0.6)',
+                                                 cursor: 'pointer',
+                                                 boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                                                 transition: 'all 0.2s ease'
+                                               }}
+                                               onClick={() => playReferencePitch(quiz[currentQuestionIndex])}
+                                               disabled={isRecording}
+                                             >
+                                               🎵 Listen to Reference Pitch ({quiz[currentQuestionIndex].expected_pitch || 'C4'})
+                                             </button>
                                                     <div style={{ 
                                                       background: studentAns.passed ? 'rgba(40, 167, 69, 0.1)' : 'rgba(220, 53, 69, 0.1)', 
                                                       border: `1px solid ${studentAns.passed ? '#28a745' : '#dc3545'}`, 

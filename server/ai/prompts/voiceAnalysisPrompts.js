@@ -65,10 +65,10 @@ Performance Metrics:
 ${rawTranscription ? `- Student Sang/Said: "${rawTranscription}"` : ''}
 
 Interpretation Thresholds:
-- Pitch perfect    : within ±10 cents
-- Pitch acceptable : within ±25 cents
-- Pitch off        : more than ±25 cents
-- Rhythm perfect   : within ±50ms
+- Pitch perfect    : within ±15 cents
+- Pitch acceptable : within ±50 cents (half a semitone)
+- Pitch off        : more than ±50 cents
+- Rhythm perfect   : within ±80ms
 - Rhythm delayed   : more than +100ms
 - Good sustain     : within 80–120% of expected duration
 
