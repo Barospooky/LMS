@@ -34,6 +34,8 @@ const autoCorrelate = (buffer, sampleRate) => {
   buffer = buffer.slice(r1, r2);
   SIZE = buffer.length;
 
+  if (SIZE < 64) return -1; // Buffer too small after trimming
+
   let c = new Float32Array(SIZE);
   for (let i = 0; i < SIZE; i++) {
     for (let j = 0; j < SIZE - i; j++) {
@@ -42,7 +44,7 @@ const autoCorrelate = (buffer, sampleRate) => {
   }
 
   let d = 0;
-  while (c[d] > c[d + 1]) d++;
+  while (d < SIZE - 1 && c[d] > c[d + 1]) d++;
   let maxval = -1, maxpos = -1;
   for (let i = d; i < SIZE; i++) {
     if (c[i] > maxval) {
@@ -51,6 +53,8 @@ const autoCorrelate = (buffer, sampleRate) => {
     }
   }
   let T0 = maxpos;
+
+  if (T0 < 1 || T0 >= SIZE - 1) return sampleRate / T0;
 
   let x1 = c[T0 - 1], x2 = c[T0], x3 = c[T0 + 1];
   let a = (x1 + x3 - 2 * x2) / 2;
@@ -208,35 +212,78 @@ const Course = () => {
   const streamRef = useRef(null);
   const animationFrameRef = useRef(null);
   const pitchesRef = useRef([]);
+  const rmsRef = useRef([]);
 
   const startPitchDetection = async () => {
     try {
       pitchesRef.current = [];
+      rmsRef.current = [];
       setLivePitch(0);
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
 
       const AudioContext = window.AudioContext || window.webkitAudioContext;
-      const audioContext = new AudioContext();
+      const audioContext = new AudioContext({ sampleRate: 44100 });
       audioContextRef.current = audioContext;
 
       const source = audioContext.createMediaStreamSource(stream);
+
+      // Preprocessing: bandpass filter to clear low-frequency (keyboard/fan) and high-frequency noise
+      const filter = audioContext.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(540, audioContext.currentTime); // Center vocal range
+      filter.Q.setValueAtTime(0.5, audioContext.currentTime); // Moderate width to preserve vocal formants
+
       const analyser = audioContext.createAnalyser();
       analyser.fftSize = 2048;
       analyserRef.current = analyser;
 
-      source.connect(analyser);
+      // Polyfill getFloat32TimeDomainData if it is missing in the browser/engine
+      if (analyser && !analyser.getFloat32TimeDomainData) {
+        analyser.getFloat32TimeDomainData = function(array) {
+          const uint8Array = new Uint8Array(array.length);
+          this.getByteTimeDomainData(uint8Array);
+          for (let i = 0; i < array.length; i++) {
+            array[i] = (uint8Array[i] - 128) / 128;
+          }
+        };
+      }
+
+      // Connect source -> filter -> analyser
+      source.connect(filter);
+      filter.connect(analyser);
       setIsRecording(true);
 
       const bufferLength = analyser.fftSize;
       const dataArray = new Float32Array(bufferLength);
 
+      const pitchHistory = [];
+      const smoothingWindow = 5;
+
       const updatePitch = () => {
         analyser.getFloat32TimeDomainData(dataArray);
+
+        // Calculate RMS of this frame to track volume and detect loud noise/clipping
+        let rms = 0;
+        for (let i = 0; i < dataArray.length; i++) {
+          let val = dataArray[i];
+          rms += val * val;
+        }
+        rms = Math.sqrt(rms / dataArray.length);
+        rmsRef.current.push(rms);
+
         const pitch = autoCorrelate(dataArray, audioContext.sampleRate);
-        if (pitch > 50 && pitch < 1000) { // Fundamental human vocal / basic instrument Hz
-          pitchesRef.current.push(pitch);
-          setLivePitch(Math.round(pitch));
+        
+        // Ignore low volume frames (noise filter gate)
+        if (pitch > 50 && pitch < 1000 && rms > 0.005) { 
+          pitchHistory.push(pitch);
+          if (pitchHistory.length > smoothingWindow) {
+            pitchHistory.shift();
+          }
+          // Rolling/moving average smoothing logic
+          const smoothedPitch = pitchHistory.reduce((a, b) => a + b, 0) / pitchHistory.length;
+          pitchesRef.current.push(smoothedPitch);
+          setLivePitch(Math.round(smoothedPitch));
         }
         animationFrameRef.current = requestAnimationFrame(updatePitch);
       };
@@ -261,6 +308,55 @@ const Course = () => {
         await audioContextRef.current.close();
       }
 
+      // Calculate average volume (RMS) to detect loud noise / full volume
+      const avgRms = rmsRef.current.length > 0
+        ? rmsRef.current.reduce((a, b) => a + b, 0) / rmsRef.current.length
+        : 0;
+
+      const maxRms = rmsRef.current.length > 0 ? Math.max(...rmsRef.current) : 0;
+      const isTooLoud = avgRms > 0.45;
+      const isWeakSignal = avgRms < 0.015 && maxRms < 0.04;
+
+      // 1. Audio too loud / clipping check
+      if (isTooLoud) {
+        console.warn(`[Audio Analysis] Sound is too loud or contains too much noise (avgRms: ${avgRms.toFixed(3)}). Bypassing Gemini API.`);
+        const mockResult = {
+          overallScore: 0,
+          passed: false,
+          pitchAnalysis: {
+            status: 'off',
+            deviationCents: 0,
+            feedback: "The input audio is too loud or contains too much background noise. Please reduce your volume or move to a quieter environment."
+          },
+          overallFeedback: 'Loud noise detected. To protect your hearing and get accurate analysis, please lower the volume and try again.',
+          improvementTip: 'Ensure you are in a quiet room and singing/playing at a moderate volume.',
+          encouragement: 'Let\'s try that again with lower volume!'
+        };
+        handleAnswerSelect(questionItem.id, mockResult);
+        return;
+      }
+
+      // 2. Audio too weak / quiet check (low signal strength check)
+      if (isWeakSignal && maxRms > 0.003) {
+        console.warn(`[Audio Analysis] Weak signal detected (avgRms: ${avgRms.toFixed(4)}, maxRms: ${maxRms.toFixed(4)}). Bypassing Gemini API.`);
+        const mockResult = {
+          overallScore: 55, // partial score, not failing with 0
+          passed: false,
+          status: "weak_audio",
+          message: "Voice detected but audio quality is low.",
+          pitchAnalysis: {
+            status: 'weak_audio',
+            deviationCents: 0,
+            feedback: "Voice detected but audio quality is low."
+          },
+          overallFeedback: 'Voice detected but audio quality is low. Try singing slightly louder or closer to the microphone.',
+          improvementTip: 'Check your microphone placement, signal strength, and volume settings.',
+          encouragement: 'Let\'s try that again with a bit more volume!'
+        };
+        handleAnswerSelect(questionItem.id, mockResult);
+        return;
+      }
+
       // Compute performance metrics
       const validPitches = pitchesRef.current.filter(p => p > 50 && p < 1000);
       let avgPitch = null;
@@ -268,8 +364,6 @@ const Course = () => {
         const sum = validPitches.reduce((a, b) => a + b, 0);
         avgPitch = sum / validPitches.length;
       }
-
-      console.log(`[Audio Analysis] Completed recording. Average frequency: ${avgPitch ? avgPitch.toFixed(2) + 'Hz' : 'None'}`);
 
       const expectedHz = getExpectedPitchForTask(questionItem.question, questionItem.expected_pitch);
       let deviationCents = 0;
@@ -280,6 +374,61 @@ const Course = () => {
         while (normalizedPitch > expectedHz * 1.5) normalizedPitch /= 2;
 
         deviationCents = Math.round(1200 * Math.log2(normalizedPitch / expectedHz));
+      }
+
+      const pitchConfidence = rmsRef.current.length > 0 
+        ? pitchesRef.current.length / rmsRef.current.length
+        : 0;
+
+      // 12. Add logs for debugging: frequency, energy, frames, confidence
+      console.log(`=========================================`);
+      console.log(`[Voice AI Debug Log]`);
+      console.log(`- Expected Pitch Note  : ${questionItem.expected_pitch || 'C4'}`);
+      console.log(`- Expected Freq (Hz)   : ${expectedHz.toFixed(2)} Hz`);
+      console.log(`- Average Pitch locked : ${avgPitch ? avgPitch.toFixed(2) + ' Hz' : 'N/A'}`);
+      console.log(`- Total Pitch Frames   : ${pitchesRef.current.length}`);
+      console.log(`- Average RMS volume   : ${avgRms.toFixed(4)}`);
+      console.log(`- Max RMS volume       : ${maxRms.toFixed(4)}`);
+      console.log(`- Pitch Confidence     : ${(pitchConfidence * 100).toFixed(1)}%`);
+      console.log(`- Sample Rate          : 44100 Hz`);
+      console.log(`- Waveform Detected    : ${maxRms > 0.003 ? 'YES' : 'NO'}`);
+      console.log(`=========================================`);
+
+      // 3. Audio detected but pitch tracking failed (waveform exists but no periodic pitch, e.g. talking/noise)
+      if (avgPitch === null && maxRms > 0.01) {
+        console.warn(`[Audio Analysis] Sound detected but no pitch could be tracked (maxRms: ${maxRms.toFixed(4)}). Giving partial score.`);
+        const mockResult = {
+          overallScore: 60, // Partial score instead of 0!
+          passed: false,
+          pitchAnalysis: {
+            status: 'off',
+            deviationCents: 0,
+            feedback: "Unstable pitch or spoken voice detected. Try to hum a clear, steady musical note."
+          },
+          overallFeedback: 'Voice detected but pitch was unstable or too brief. Make sure you sing/play a steady, continuous tone.',
+          improvementTip: 'Try to hold a single steady vowel sound (like "Aaah") at a constant pitch.',
+          encouragement: 'You are close! Keep practicing your pitch stability.'
+        };
+        handleAnswerSelect(questionItem.id, mockResult);
+        return;
+      }
+
+      // 4. Absolute silence / no waveform check
+      if (avgPitch === null) {
+        const mockResult = {
+          overallScore: 0,
+          passed: false,
+          pitchAnalysis: {
+            status: 'off',
+            deviationCents: 0,
+            feedback: "No sound detected. Ensure you are singing/playing clearly into your microphone."
+          },
+          overallFeedback: 'Check microphone connections and ensure you are in a quiet room.',
+          improvementTip: 'Ensure proper breath support and hold notes steady without wavering.',
+          encouragement: 'Keep up the practice!'
+        };
+        handleAnswerSelect(questionItem.id, mockResult);
+        return;
       }
 
       // Call Express/Gemini voice analyzer API
@@ -303,7 +452,13 @@ const Course = () => {
             rhythmDelayMs: 0,
             sustainDurationMs: 2500,
             expectedDurationMs: 2500,
-            amplitudeVariance: avgPitch ? 1.8 : null
+            amplitudeVariance: avgPitch ? 1.8 : null,
+            isTooLoud,
+            avgRms: parseFloat(avgRms.toFixed(3)),
+            maxRms: parseFloat(maxRms.toFixed(3)),
+            pitchConfidence: parseFloat(pitchConfidence.toFixed(3)),
+            pitchFramesCount: pitchesRef.current.length,
+            isWeakSignal
           }
         })
       });
@@ -314,23 +469,47 @@ const Course = () => {
       if (response.ok && data.success) {
         handleAnswerSelect(questionItem.id, data.data);
       } else {
-        // Fallback simulated metrics if server is overloaded
-        const score = avgPitch ? (Math.abs(deviationCents) < 25 ? 90 : 65) : 0;
+        // Fallback simulated metrics if server is overloaded or offline
+        // Implement the new beginner-friendly adaptive scoring logic here!
+        const expectedHz = getExpectedPitchForTask(questionItem.question, questionItem.expected_pitch);
+        let score = 50; // Base score for effort if sound is detected
+        
+        if (avgPitch) {
+          const absDeviation = Math.abs(deviationCents);
+          
+          // Adaptive grading: perfect <= 30 cents, acceptable <= 80 cents, beginner tolerance up to 150 cents
+          if (absDeviation <= 30) {
+            score = 95; // Excellent
+          } else if (absDeviation <= 80) {
+            score = 82; // Good pass
+          } else if (absDeviation <= 150) {
+            score = 70; // Borderline beginner pass
+          } else {
+            score = 60; // Needs improvement but not 0
+          }
+          
+          // Add stability bonus based on confidence
+          const stabilityBonus = Math.round(pitchConfidence * 10);
+          score = Math.min(100, score + stabilityBonus);
+        }
+
         const mockResult = {
           overallScore: score,
           passed: score >= 70,
           pitchAnalysis: {
-            status: avgPitch ? (Math.abs(deviationCents) < 15 ? 'perfect' : 'slightly_off') : 'off',
+            status: avgPitch ? (Math.abs(deviationCents) <= 30 ? 'perfect' : Math.abs(deviationCents) <= 80 ? 'acceptable' : 'off') : 'off',
             deviationCents: deviationCents,
             feedback: avgPitch 
               ? `You performed at an average frequency of ${Math.round(avgPitch)}Hz against target ${Math.round(expectedHz)}Hz (deviation: ${deviationCents} cents).` 
               : "No sound detected. Ensure you are singing/playing clearly into your microphone."
           },
           overallFeedback: avgPitch 
-            ? `Extracted average pitch is ${Math.round(avgPitch)}Hz. Target is ${Math.round(expectedHz)}Hz.`
+            ? `Your tone was captured at ${Math.round(avgPitch)}Hz. Target is ${Math.round(expectedHz)}Hz.`
             : 'Check microphone connections and ensure you are in a quiet room.',
-          improvementTip: 'Ensure proper breath support and hold notes steady without wavering.',
-          encouragement: 'Keep up the practice!'
+          improvementTip: avgPitch && Math.abs(deviationCents) > 80
+            ? 'Try listening to the reference pitch again and match your tone closer to it.'
+            : 'Ensure proper breath support and hold notes steady without wavering.',
+          encouragement: score >= 70 ? 'Excellent match! Keep it up!' : 'Keep practicing, you are getting closer!'
         };
         handleAnswerSelect(questionItem.id, mockResult);
       }
@@ -1101,8 +1280,8 @@ const Course = () => {
                                               {isRecording ? (
                                                 <p style={{ fontWeight: '500', color: 'var(--accent)' }}>Recording active... Play/sing your note clearly now!</p>
                                               ) : selectedAnswers[quiz[currentQuestionIndex].id] ? (
-                                                <div style={{ textAlign: 'left', padding: '16px', background: 'rgba(255,255,255,0.7)', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.05)', margin: '10px 0' }}>
-                                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                                <div style={{ textAlign: 'center', padding: '16px', background: 'rgba(255,255,255,0.7)', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.05)', margin: '10px 0' }}>
+                                                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '16px', marginBottom: '10px' }}>
                                                     <span style={{ fontWeight: 'bold', fontSize: '15px' }}>
                                                       {selectedAnswers[quiz[currentQuestionIndex].id].overallScore >= 70 ? '✅ Passed!' : '❌ Try Again'}
                                                     </span>

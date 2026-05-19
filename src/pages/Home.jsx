@@ -46,6 +46,8 @@ const Home = () => {
       });
       setGoogleReady(true);
       setGoogleLoading(false);
+
+      window.dispatchEvent(new Event('google-sdk-loaded'));
     };
 
     if (window.google?.accounts?.id) {
@@ -80,6 +82,45 @@ const Home = () => {
       cancelled = true;
     };
   }, []);
+
+  // Programmatically render official Google buttons
+  useEffect(() => {
+    const renderGoogleButtons = () => {
+      if (!GOOGLE_CLIENT_ID || !window.google?.accounts?.id) return;
+
+      const loginContainer = document.getElementById('google-signin-btn-login');
+      if (loginContainer) {
+        window.google.accounts.id.renderButton(loginContainer, {
+          theme: 'outline',
+          size: 'large',
+          width: loginContainer.offsetWidth || 340,
+          text: 'continue_with',
+          shape: 'pill',
+        });
+      }
+
+      const signupContainer = document.getElementById('google-signin-btn-signup');
+      if (signupContainer) {
+        window.google.accounts.id.renderButton(signupContainer, {
+          theme: 'outline',
+          size: 'large',
+          width: signupContainer.offsetWidth || 340,
+          text: 'signup_with',
+          shape: 'pill',
+        });
+      }
+    };
+
+    renderGoogleButtons();
+
+    window.addEventListener('google-sdk-loaded', renderGoogleButtons);
+    const timer = setTimeout(renderGoogleButtons, 200);
+
+    return () => {
+      window.removeEventListener('google-sdk-loaded', renderGoogleButtons);
+      clearTimeout(timer);
+    };
+  }, [authTab, GOOGLE_CLIENT_ID]);
 
   const switchTab = (tab) => {
     setAuthTab(tab);
@@ -167,34 +208,6 @@ const Home = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleGoogleLogin = () => {
-    if (!GOOGLE_CLIENT_ID) {
-      setError('Google sign-in is not configured yet. Add VITE_GOOGLE_CLIENT_ID to the frontend .env file.');
-      return;
-    }
-
-    if (googleLoading) {
-      setError('Google sign-in is still loading. Please wait a moment and try again.');
-      return;
-    }
-
-    if (!googleReady || !window.google?.accounts?.id) {
-      setError('Google sign-in is unavailable right now. Reload the page and check that the Google script is allowed to load.');
-      return;
-    }
-
-    setError('');
-    window.google.accounts.id.prompt((notification) => {
-      if (notification.isNotDisplayed?.()) {
-        setError('Google sign-in could not be displayed. Add your live frontend URL in Google Cloud Authorized JavaScript origins.');
-      } else if (notification.isSkippedMoment?.()) {
-        setError('Google sign-in was skipped by the browser. Try again or disable popup and script blockers for this site.');
-      } else if (notification.isDismissedMoment?.()) {
-        setError('Google sign-in was dismissed before completion. Please try again.');
-      }
-    });
   };
 
   return (
@@ -321,12 +334,12 @@ const Home = () => {
 
                   <div className="social-divider"><span>Or continue with</span></div>
 
-                  <div className="social-btns">
-                    <button type="button" className="btn-social" onClick={handleGoogleLogin} disabled={loading || googleLoading || !googleReady} style={{ gridColumn: 'span 2' }}>
-                      <img src="https://www.svgrepo.com/show/355037/google.svg" alt="Google" />
-                      <span>{googleLoading ? 'Loading Google...' : 'Continue with Google'}</span>
-                    </button>
+                  <div className="social-btns" style={{ display: 'flex', justifyContent: 'center', width: '100%', gridColumn: 'span 2' }}>
+                    <div id="google-signin-btn-login" style={{ display: 'flex', justifyContent: 'center', width: '100%', minHeight: '40px' }}></div>
                   </div>
+                  {!googleReady && GOOGLE_CLIENT_ID && (
+                    <p className="auth-footnote">Loading Google sign-in...</p>
+                  )}
                   <p className="auth-footnote">Once logged in, students can browse courses, purchase access, and unlock every module.</p>
                 </form>
               )}
@@ -382,12 +395,12 @@ const Home = () => {
 
                   <div className="social-divider"><span>Or join with</span></div>
 
-                  <div className="social-btns">
-                    <button type="button" className="btn-social" onClick={handleGoogleLogin} disabled={loading || googleLoading || !googleReady} style={{ gridColumn: 'span 2' }}>
-                      <img src="https://www.svgrepo.com/show/355037/google.svg" alt="Google" />
-                      <span>{googleLoading ? 'Loading Google...' : 'Join with Google'}</span>
-                    </button>
+                  <div className="social-btns" style={{ display: 'flex', justifyContent: 'center', width: '100%', gridColumn: 'span 2' }}>
+                    <div id="google-signin-btn-signup" style={{ display: 'flex', justifyContent: 'center', width: '100%', minHeight: '40px' }}></div>
                   </div>
+                  {!googleReady && GOOGLE_CLIENT_ID && (
+                    <p className="auth-footnote">Loading Google sign-in...</p>
+                  )}
                   <p className="auth-footnote">Students unlock video modules, complete quizzes, and receive a certificate at the end.</p>
                 </form>
               )}
