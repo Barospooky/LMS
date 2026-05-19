@@ -8,20 +8,32 @@ import useMagnetic from '../hooks/useMagnetic';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+const GOOGLE_SCRIPT_ID = 'google-identity-services';
 
 const Home = () => {
   const navigate = useNavigate();
   const [authTab, setAuthTab] = useState('login');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleReady, setGoogleReady] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(Boolean(GOOGLE_CLIENT_ID));
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [signupData, setSignupData] = useState({ firstName: '', lastName: '', email: '', password: '' });
 
   const btnGetStarted = useMagnetic();
   const btnStartJourney = useMagnetic();
 
+  const handleGoogleScriptError = () => {
+    setGoogleReady(false);
+    setGoogleLoading(false);
+    setError('Google sign-in could not load. Check your internet connection, browser extensions, or blocked third-party scripts.');
+  };
+
   useEffect(() => {
-    if (!GOOGLE_CLIENT_ID) return undefined;
+    if (!GOOGLE_CLIENT_ID) {
+      setGoogleLoading(false);
+      return undefined;
+    }
 
     let cancelled = false;
 
@@ -32,6 +44,8 @@ const Home = () => {
         client_id: GOOGLE_CLIENT_ID,
         callback: handleGoogleCredential,
       });
+      setGoogleReady(true);
+      setGoogleLoading(false);
     };
 
     if (window.google?.accounts?.id) {
@@ -41,11 +55,25 @@ const Home = () => {
       };
     }
 
+    const existingScript = document.getElementById(GOOGLE_SCRIPT_ID);
+    if (existingScript) {
+      existingScript.addEventListener('load', initializeGoogle);
+      existingScript.addEventListener('error', handleGoogleScriptError);
+
+      return () => {
+        cancelled = true;
+        existingScript.removeEventListener('load', initializeGoogle);
+        existingScript.removeEventListener('error', handleGoogleScriptError);
+      };
+    }
+
     const script = document.createElement('script');
+    script.id = GOOGLE_SCRIPT_ID;
     script.src = 'https://accounts.google.com/gsi/client';
     script.async = true;
     script.defer = true;
     script.onload = initializeGoogle;
+    script.onerror = handleGoogleScriptError;
     document.body.appendChild(script);
 
     return () => {
@@ -147,13 +175,26 @@ const Home = () => {
       return;
     }
 
-    if (!window.google?.accounts?.id) {
-      setError('Google sign-in is still loading. Please try again.');
+    if (googleLoading) {
+      setError('Google sign-in is still loading. Please wait a moment and try again.');
+      return;
+    }
+
+    if (!googleReady || !window.google?.accounts?.id) {
+      setError('Google sign-in is unavailable right now. Reload the page and check that the Google script is allowed to load.');
       return;
     }
 
     setError('');
-    window.google.accounts.id.prompt();
+    window.google.accounts.id.prompt((notification) => {
+      if (notification.isNotDisplayed?.()) {
+        setError('Google sign-in could not be displayed. Add your live frontend URL in Google Cloud Authorized JavaScript origins.');
+      } else if (notification.isSkippedMoment?.()) {
+        setError('Google sign-in was skipped by the browser. Try again or disable popup and script blockers for this site.');
+      } else if (notification.isDismissedMoment?.()) {
+        setError('Google sign-in was dismissed before completion. Please try again.');
+      }
+    });
   };
 
   return (
@@ -281,9 +322,9 @@ const Home = () => {
                   <div className="social-divider"><span>Or continue with</span></div>
 
                   <div className="social-btns">
-                    <button type="button" className="btn-social" onClick={handleGoogleLogin} disabled={loading} style={{ gridColumn: 'span 2' }}>
+                    <button type="button" className="btn-social" onClick={handleGoogleLogin} disabled={loading || googleLoading || !googleReady} style={{ gridColumn: 'span 2' }}>
                       <img src="https://www.svgrepo.com/show/355037/google.svg" alt="Google" />
-                      <span>Continue with Google</span>
+                      <span>{googleLoading ? 'Loading Google...' : 'Continue with Google'}</span>
                     </button>
                   </div>
                   <p className="auth-footnote">Once logged in, students can browse courses, purchase access, and unlock every module.</p>
@@ -342,9 +383,9 @@ const Home = () => {
                   <div className="social-divider"><span>Or join with</span></div>
 
                   <div className="social-btns">
-                    <button type="button" className="btn-social" onClick={handleGoogleLogin} disabled={loading} style={{ gridColumn: 'span 2' }}>
+                    <button type="button" className="btn-social" onClick={handleGoogleLogin} disabled={loading || googleLoading || !googleReady} style={{ gridColumn: 'span 2' }}>
                       <img src="https://www.svgrepo.com/show/355037/google.svg" alt="Google" />
-                      <span>Join with Google</span>
+                      <span>{googleLoading ? 'Loading Google...' : 'Join with Google'}</span>
                     </button>
                   </div>
                   <p className="auth-footnote">Students unlock video modules, complete quizzes, and receive a certificate at the end.</p>
