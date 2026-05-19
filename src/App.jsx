@@ -5,6 +5,7 @@ import Course from './pages/Course'
 import Curriculum from './pages/Curriculum'
 import CustomCursor from './components/CustomCursor'
 import ProtectedRoute from './components/ProtectedRoute'
+import Chatbot from './components/Chatbot'
 import './App.css'
 
 function App() {
@@ -40,6 +41,7 @@ function App() {
           } 
         />
       </Routes>
+      <Chatbot />
     </Router>
   )
 }

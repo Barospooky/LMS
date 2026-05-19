@@ -278,41 +278,63 @@
   font-size: 24px;
 }
 
-.lesson-tabs {
+.lesson-accordions {
   display: flex;
-  gap: 10px;
-  margin: 22px 0 16px;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 24px;
 }
 
-.ltab {
-  min-height: 44px;
-  padding: 0 18px;
-  border: 1px solid rgba(23, 20, 17, 0.12);
-  border-radius: 999px;
+.accordion-section {
+  border-radius: 20px;
   background: rgba(255, 250, 242, 0.88);
-  font-family: var(--font-display);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  cursor: pointer;
+  border: 1px solid rgba(23, 20, 17, 0.12);
+  overflow: hidden;
+  transition: all 0.3s ease;
 }
 
-.ltab.active {
+.accordion-section.open {
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.accordion-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 24px;
+  background: transparent;
+  border: none;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.accordion-section.open .accordion-header {
   background: var(--primary);
   color: var(--text-on-dark);
 }
 
-.ltab:disabled {
-  opacity: 0.42;
+.accordion-header:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
-.ltab-content {
-  padding: 28px;
-  border-radius: 28px;
-  background: rgba(255, 251, 245, 0.82);
-  border: 1px solid rgba(23, 20, 17, 0.08);
+.accordion-icon {
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.accordion-body {
+  padding: 24px;
+  border-top: 1px solid rgba(23, 20, 17, 0.08);
 }
 
 .lesson-points {
@@ -366,6 +388,14 @@
   text-transform: none;
   letter-spacing: 0;
   font-size: 15px;
+}
+
+.quiz-option.active {
+  background: var(--accent) !important;
+  color: #ffffff !important;
+  border-color: var(--accent) !important;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(183, 106, 47, 0.2);
 }
 
 .quiz-option.correct {

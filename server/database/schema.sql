@@ -74,3 +74,11 @@ CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
 CREATE INDEX IF NOT EXISTS idx_orders_course_id ON orders(course_id);
 CREATE INDEX IF NOT EXISTS idx_payments_order_id ON payments(order_id);
 CREATE INDEX IF NOT EXISTS idx_payments_user_id ON payments(user_id);
+
+CREATE TABLE IF NOT EXISTS user_progress (
+  user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  course_id INT NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+  lesson_id INT NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
+  completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (user_id, course_id, lesson_id)
+);
