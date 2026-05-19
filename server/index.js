@@ -26,6 +26,10 @@ app.get('/', (req, res) => {
   res.send('LMS Backend API is running...');
 });
 
+app.get('/healthz', (req, res) => {
+  res.status(200).json({ ok: true });
+});
+
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {

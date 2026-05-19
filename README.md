@@ -108,3 +108,46 @@ This project is now clearly separated into:
 1. Frontend: `src/`
 2. Backend: `server/`
 3. Database: `server/database/`
+
+## Deployment
+
+### Vercel frontend
+
+This repo includes [vercel.json](/D:/ms/learnify-platform/learnify/vercel.json) so Vercel can serve the Vite app as a Single Page Application with deep-link support.
+
+Use these Vercel project settings:
+
+1. Framework preset: `Vite`
+2. Root directory: repository root
+3. Build command: `npm run build`
+4. Output directory: `dist`
+
+Set these environment variables in Vercel:
+
+```env
+VITE_API_URL=https://your-render-backend.onrender.com
+VITE_GOOGLE_CLIENT_ID=your_google_client_id_here
+```
+
+### Render backend
+
+This repo includes [render.yaml](/D:/ms/learnify-platform/learnify/render.yaml) for the Express API.
+
+The Render service uses:
+
+1. Root directory: `server`
+2. Build command: `npm install`
+3. Start command: `npm start`
+4. Health check path: `/healthz`
+
+Set these environment variables in Render:
+
+```env
+DATABASE_URL=your_postgres_connection_string
+DB_SSL=true
+JWT_SECRET=your_jwt_secret
+GOOGLE_CLIENT_ID=your_google_client_id_here
+RAZORPAY_KEY_ID=your_razorpay_key_id
+RAZORPAY_KEY_SECRET=your_razorpay_key_secret
+GEMINI_API_KEY=your_gemini_api_key_here
+```
