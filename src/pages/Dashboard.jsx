@@ -66,13 +66,11 @@ const Dashboard = () => {
     <div className="dashboard-page">
       <aside className="sidebar">
         <div className="sidebar-brand">
-          <div className="brand-icon-small">
-            <Music size={18} className="icon-accent" />
-          </div>
-          <div className="brand-text">
-            <span className="brand-logo tracking-tighter">MELODY.</span>
-            <small>Member area</small>
-          </div>
+          <img 
+            src="https://amplepro.in/wp-content/uploads/2024/06/new-logo-ap.webp" 
+            alt="Amplepro Logo" 
+            className="brand-logo-img-small"
+          />
         </div>
         <div className="sidebar-spotlight">
           <span className="sidebar-kicker">Member area</span>

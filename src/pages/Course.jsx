@@ -615,7 +615,7 @@ const Course = () => {
       pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(10);
       pdf.text('Lead Instructor', 36, 186);
-      pdf.text('Melody Conservatory', 36, 192);
+      pdf.text('Amplepro Technologies', 36, 192);
 
       pdf.text(completionDate, pdfWidth - 82, 186);
       pdf.text('Date of completion', pdfWidth - 82, 192);
@@ -1618,7 +1618,7 @@ const Course = () => {
                       )}
                       <div className="sig-line"></div>
                       <span>Lead Instructor</span>
-                      <small>Melody Conservatory</small>
+                      <small>Amplepro Technologies</small>
                     </div>
                     <div className="cert-seal">
                       <div className="seal-ring">♪</div>

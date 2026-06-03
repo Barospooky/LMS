@@ -13,8 +13,8 @@
   min-height: calc(100vh - 44px);
   padding: 30px 24px;
   border-radius: 34px;
-  background: rgba(20, 14, 10, 0.94);
-  color: var(--text-on-dark);
+  background: var(--bg-dark);
+  color: #ffffff;
   box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
@@ -23,36 +23,10 @@
 .sidebar-brand {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 24px;
-}
-
-.brand-icon-small {
-  width: 36px;
-  height: 36px;
-  background: rgba(183, 106, 47, 0.15);
-  border: 1px solid rgba(183, 106, 47, 0.3);
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  color: var(--accent);
-}
-
-.brand-text {
-  display: flex;
-  flex-direction: column;
-}
-
-.sidebar-brand span {
-  font-size: 24px;
-  line-height: 1;
-}
-
-.sidebar-brand small,
-.sidebar-user small {
-  color: rgba(255, 248, 241, 0.62);
+  padding: 10px 0;
+  margin-bottom: 32px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .sidebar-spotlight {

@@ -18,7 +18,7 @@
   right: -120px;
   width: 340px;
   height: 340px;
-  background: radial-gradient(circle, rgba(183, 106, 47, 0.18), transparent 70%);
+  background: radial-gradient(circle, rgba(0, 174, 177, 0.12), transparent 70%);
 }
 
 .auth-page::after {
@@ -26,7 +26,7 @@
   left: -120px;
   width: 360px;
   height: 360px;
-  background: radial-gradient(circle, rgba(23, 20, 17, 0.12), transparent 70%);
+  background: radial-gradient(circle, rgba(10, 37, 39, 0.08), transparent 70%);
 }
 
 .main-nav {
@@ -77,11 +77,20 @@
 .hero {
   position: relative;
   z-index: 1;
-  min-height: calc(100vh - 90px);
+  min-height: calc(100vh - 120px);
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.85fr);
-  gap: 28px;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 40px;
   align-items: stretch;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+@media (max-width: 1024px) {
+  .hero {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
 }
 
 .hero-panel,

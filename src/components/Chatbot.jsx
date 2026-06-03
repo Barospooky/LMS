@@ -66,7 +66,7 @@ const Chatbot = () => {
           <div className="chatbot-header">
             <div className="chatbot-header-title">
               <Bot size={20} />
-              <h3>Music Assistant</h3>
+              <h3>Amplepro AI Assistant</h3>
             </div>
             <button className="chatbot-close-btn" onClick={() => setIsOpen(false)}>
               <Minimize2 size={18} />

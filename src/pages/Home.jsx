@@ -214,13 +214,11 @@ const Home = () => {
     <div className="auth-page">
       <nav className="main-nav">
         <div className="nav-brand">
-          <div className="brand-icon">
-            <Music className="icon-accent" size={24} />
-          </div>
-          <div className="brand-text">
-            <span className="brand-logo tracking-tighter">MELODY.</span>
-            <span className="brand-note">Music learning atelier</span>
-          </div>
+          <img 
+            src="https://amplepro.in/wp-content/uploads/2024/06/new-logo-ap.webp" 
+            alt="Amplepro Logo" 
+            className="brand-logo-img"
+          />
         </div>
         <div className="nav-links">
           <button ref={btnGetStarted} className="btn-outline magnetic" onClick={() => switchTab('signup')}>Get Started</button>
@@ -238,13 +236,13 @@ const Home = () => {
             </Reveal>
             <Reveal delay="0.1s">
               <h1 className="hero-title text-serif tracking-tighter">
-                Elevate your <br />
+                Master your <br />
                 <span className="text-accent">musical craft.</span>
               </h1>
             </Reveal>
             <Reveal delay="0.2s">
               <p className="hero-subtext">
-                A premium music-learning platform where students create an account, explore instrument programs, purchase access, watch lesson videos, answer module questions, and earn a certificate when the course is complete.
+                A premium music learning platform by Amplepro. Explore structured instrument programs, watch high-definition lessons, and earn professional certificates upon completion.
               </p>
             </Reveal>
           </div>
