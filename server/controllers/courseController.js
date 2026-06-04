@@ -5,15 +5,54 @@ import fs from 'fs';
 
 export const getCourses = async (req, res) => {
   const userId = req.user.id;
+  const { search, category, difficulty, sort } = req.query;
+  
   try {
-    const courses = await pool.query(`
+    let query = `
       SELECT
         c.*,
         (SELECT COUNT(*) FROM user_courses WHERE user_id = $1 AND course_id = c.id) AS isPurchased,
         (SELECT COUNT(*) FROM lessons WHERE course_id = c.id) AS lessonsCount,
         (SELECT id FROM lessons WHERE course_id = c.id ORDER BY lesson_order ASC LIMIT 1) AS firstLessonId
       FROM courses c
-    `, [userId]);
+      WHERE 1=1
+    `;
+    const params = [userId];
+    let paramIndex = 2;
+
+    if (search) {
+      query += ` AND (c.title ILIKE $${paramIndex} OR c.description ILIKE $${paramIndex})`;
+      params.push(`%${search}%`);
+      paramIndex++;
+    }
+
+    if (category) {
+      query += ` AND c.category = $${paramIndex}`;
+      params.push(category);
+      paramIndex++;
+    }
+
+    if (difficulty) {
+      query += ` AND c.difficulty = $${paramIndex}`;
+      params.push(difficulty);
+      paramIndex++;
+    }
+
+    if (sort) {
+      if (sort === 'price_asc') {
+        query += ` ORDER BY c.price ASC`;
+      } else if (sort === 'price_desc') {
+        query += ` ORDER BY c.price DESC`;
+      } else if (sort === 'title') {
+        query += ` ORDER BY c.title ASC`;
+      } else {
+        query += ` ORDER BY c.created_at DESC`;
+      }
+    } else {
+      query += ` ORDER BY c.created_at DESC`;
+    }
+
+    const courses = await pool.query(query, params);
     
     const formattedCourses = courses.rows.map(course => ({
       ...course,
@@ -79,9 +118,9 @@ export const getLessonQuiz = async (req, res) => {
       return res.json(existingQuizzes.rows.reverse());
     }
 
-    // 2. Fetch lesson and course context to get instrument, title, and video url
+    // 2. Fetch lesson and course context to get category, title, and video url
     const infoRes = await pool.query(`
-      SELECT l.title as lesson_title, l.video_url, c.instrument
+      SELECT l.title as lesson_title, l.video_url, c.category
       FROM lessons l
       JOIN courses c ON l.course_id = c.id
       WHERE l.id = $1
@@ -99,13 +138,13 @@ export const getLessonQuiz = async (req, res) => {
     }
 
     // 3. Trigger the high-fidelity dynamic Quiz Generation Engine!
-    // This transcribes the video, analyzes music theory, checks vector embeddings, removes duplicates, and inserts questions.
+    // This transcribes the video, analyzes content, checks vector embeddings, removes duplicates, and inserts questions.
     console.log(`[Core Quiz Controller] Invoking AI Assessment Engine for Lesson: "${lesson.lesson_title}"`);
     await generateAutomatedAssessment({
       lessonId,
       lessonTitle: lesson.lesson_title,
       videoUrl: lesson.video_url || '',
-      instrument: lesson.instrument || 'vocal',
+      instrument: lesson.category || 'general',
       tradition: 'general',
       type: 'mixed', // 3 MCQ + 2 Voice Practice as requested!
       questionCount: 5,
@@ -167,5 +206,25 @@ export const getUserProgress = async (req, res) => {
     res.json({ completedLessons });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching user progress', error: error.message });
+  }
+};
+
+export const getLandingCourses = async (req, res) => {
+  try {
+    const courses = await pool.query(`
+      SELECT
+        c.*,
+        (SELECT COUNT(*) FROM lessons WHERE course_id = c.id) AS lessonsCount
+      FROM courses c
+    `);
+    
+    const formattedCourses = courses.rows.map(course => ({
+      ...course,
+      lessonsCount: parseInt(course.lessonscount, 10) || 0,
+    }));
+    
+    res.json(formattedCourses);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching landing courses', error: error.message });
   }
 };

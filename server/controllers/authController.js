@@ -2,13 +2,14 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import pool from '../config/db.js';
 
-const createToken = (id) => jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+const createToken = (id, role) => jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
 const buildUserResponse = (user) => ({
   id: user.id,
   firstName: user.first_name ?? user.firstname,
   lastName: user.last_name ?? user.lastname,
   email: user.email,
+  role: user.role
 });
 
 export const signup = async (req, res) => {
@@ -27,18 +28,18 @@ export const signup = async (req, res) => {
 
     // Insert user
     const result = await pool.query(
-      'INSERT INTO users (first_name, last_name, email, password_hash) VALUES ($1, $2, $3, $4) RETURNING id',
+      'INSERT INTO users (first_name, last_name, email, password_hash) VALUES ($1, $2, $3, $4) RETURNING id, role',
       [firstName, lastName, email, hashedPassword]
     );
 
-    const userId = result.rows[0].id;
+    const { id: userId, role } = result.rows[0];
 
     // Create token
-    const token = createToken(userId);
+    const token = createToken(userId, role);
 
     res.status(201).json({
       token,
-      user: { id: userId, firstName, lastName, email }
+      user: { id: userId, firstName, lastName, email, role }
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error during signup', error: error.message });
@@ -68,7 +69,7 @@ export const login = async (req, res) => {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    const token = createToken(user.id);
+    const token = createToken(user.id, user.role);
 
     res.json({
       token,
@@ -129,7 +130,7 @@ export const googleLogin = async (req, res) => {
       user = result.rows[0];
     }
 
-    const token = createToken(user.id);
+    const token = createToken(user.id, user.role);
 
     res.json({
       token,

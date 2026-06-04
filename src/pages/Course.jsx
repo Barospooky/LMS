@@ -442,7 +442,7 @@ const Course = () => {
         body: JSON.stringify({
           taskType: 'sing_note',
           expectedNote: questionItem.expected_pitch || 'C4',
-          instrument: course?.instrument || 'vocal',
+          instrument: course?.category || 'general',
           tradition: 'general',
           lessonTitle: currentLesson?.title || '',
           studentPerformanceData: {
@@ -560,12 +560,12 @@ const Course = () => {
       pdf.setTextColor(textColor);
       pdf.setFont('times', 'bolditalic');
       pdf.setFontSize(22);
-      pdf.text('MELODY.', pdfWidth / 2, 34, { align: 'center' });
+      pdf.text('AMPLEPRO LMS', pdfWidth / 2, 34, { align: 'center' });
 
       pdf.setTextColor(accent);
       pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(10);
-      pdf.text('CERTIFICATE OF MUSICAL COMPLETION', pdfWidth / 2, 44, { align: 'center' });
+      pdf.text('CERTIFICATE OF COMPLETION', pdfWidth / 2, 44, { align: 'center' });
 
       pdf.setTextColor(subtitleColor);
       pdf.setFontSize(14);
@@ -595,7 +595,7 @@ const Course = () => {
       pdf.setTextColor(accent);
       pdf.setFont('times', 'bold');
       pdf.setFontSize(18);
-      pdf.text('\u266A', pdfWidth / 2, 167, { align: 'center' });
+      pdf.text('\u2605', pdfWidth / 2, 167, { align: 'center' });
 
       pdf.setDrawColor(120, 120, 120);
       pdf.setLineWidth(0.25);
@@ -725,146 +725,52 @@ const Course = () => {
     }
   };
 
-  const generateDefaultQuiz = (instrument, lessonOrder = 1) => {
-    const inst = (instrument || 'flute').toLowerCase();
+  const generateDefaultQuiz = (category, lessonOrder = 1) => {
+    const cat = (category || 'development').toLowerCase();
     const order = Number(lessonOrder) || 1;
 
-    if (inst === 'piano') {
+    if (cat === 'development') {
       if (order === 1) {
         return [
-          { id: 'p1_q1', type: 'text', question: 'In piano, what does the sustain pedal (right-most pedal) do?', options: ['Dampens the sound', 'Sustains the played notes', 'Softens the tone', 'Changes the scale pitch'], correct_answer: 'Sustains the played notes' },
-          { id: 'p1_q2', type: 'text', question: 'Which key is located immediately to the left of the two black keys group?', options: ['C', 'F', 'G', 'B'], correct_answer: 'C' },
-          { id: 'p1_q3', type: 'text', question: 'What is the standard number of keys on a full-size acoustic piano?', options: ['66', '76', '88', '98'], correct_answer: '88' },
-          { id: 'p1_q4', type: 'voice', question: 'Piano Check: Play a middle C major triad and hold it.', options: [], correct_answer: 'recorded', expected_pitch: 'C4' },
-          { id: 'p1_q5', type: 'voice', question: 'Voice Check: Sing/hum the pitch of the middle C triad you just played.', options: [], correct_answer: 'recorded', expected_pitch: 'C4' }
-        ];
-      } else if (order === 2) {
-        return [
-          { id: 'p2_q1', type: 'text', question: 'In standard piano fingering, which finger is designated as number 1?', options: ['Thumb', 'Index finger', 'Middle finger', 'Pinky'], correct_answer: 'Thumb' },
-          { id: 'p2_q2', type: 'text', question: 'What key comes immediately after G in the musical alphabet on the piano?', options: ['H', 'A', 'F', 'C'], correct_answer: 'A' },
-          { id: 'p2_q3', type: 'text', question: 'What is the name of the clef typically played by the right hand on the piano?', options: ['Bass Clef', 'Treble Clef', 'Alto Clef', 'Tenor Clef'], correct_answer: 'Treble Clef' },
-          { id: 'p2_q4', type: 'voice', question: 'Piano Check: Play a clear G note on the keyboard.', options: [], correct_answer: 'recorded', expected_pitch: 'G4' },
-          { id: 'p2_q5', type: 'voice', question: 'Voice Check: Hum along with the root note G.', options: [], correct_answer: 'recorded', expected_pitch: 'G4' }
-        ];
-      } else if (order === 3) {
-        return [
-          { id: 'p3_q1', type: 'text', question: 'Which clef is typically played by the left hand on the piano?', options: ['Treble Clef', 'Bass Clef', 'Alto Clef', 'Soprano Clef'], correct_answer: 'Bass Clef' },
-          { id: 'p3_q2', type: 'text', question: 'What notes make up the C major triad chord?', options: ['C-E-G', 'C-F-A', 'D-F-A', 'E-G-B'], correct_answer: 'C-E-G' },
-          { id: 'p3_q3', type: 'text', question: 'What interval is between C and E on the piano keys?', options: ['Major third', 'Minor third', 'Perfect fifth', 'Octave'], correct_answer: 'Major third' },
-          { id: 'p3_q4', type: 'voice', question: 'Piano Check: Play a smooth A note.', options: [], correct_answer: 'recorded', expected_pitch: 'A4' },
-          { id: 'p3_q5', type: 'voice', question: 'Voice Check: Sing/hum the A pitch of the note.', options: [], correct_answer: 'recorded', expected_pitch: 'A4' }
+          { id: 'dev1_q1', type: 'text', question: 'In web development, what does HTML stand for?', options: ['HyperText Markup Language', 'HighText Machine Language', 'HyperTransfer Media Locator', 'Home Tool Markup Language'], correct_answer: 'HyperText Markup Language' },
+          { id: 'dev1_q2', type: 'text', question: 'Which tag is used to create a hyperlink in HTML?', options: ['<a>', '<link>', '<href>', '<url>'], correct_answer: '<a>' },
+          { id: 'dev1_q3', type: 'text', question: 'Which CSS property is used to change the background color?', options: ['background-color', 'color', 'bgcolor', 'background-image'], correct_answer: 'background-color' },
+          { id: 'dev1_q4', type: 'voice', question: 'Practice: Say the phrase "HyperText Markup Language" clearly.', options: [], correct_answer: 'recorded', expected_pitch: 'C4' },
+          { id: 'dev1_q5', type: 'voice', question: 'Voice Pitch Check: Hum the root tone C (Middle C) to test your voice level.', options: [], correct_answer: 'recorded', expected_pitch: 'C4' }
         ];
       } else {
         return [
-          { id: 'p4_q1', type: 'text', question: 'What does the term "staccato" mean when pressing piano keys?', options: ['Play very softly', 'Play short, detached notes', 'Hold keys down fully', 'Play as fast as possible'], correct_answer: 'Play short, detached notes' },
-          { id: 'p4_q2', type: 'text', question: 'What does the dynamic marking "p" (piano) indicate?', options: ['Play loudly', 'Play softly', 'Play at medium volume', 'Stop playing'], correct_answer: 'Play softly' },
-          { id: 'p4_q3', type: 'text', question: 'What is the name of the middle black key in the group of three black keys?', options: ['F#', 'G#', 'A#', 'C#'], correct_answer: 'G#' },
-          { id: 'p4_q4', type: 'voice', question: 'Piano Check: Play a staccato melody on C4.', options: [], correct_answer: 'recorded', expected_pitch: 'C4' },
-          { id: 'p4_q5', type: 'voice', question: 'Voice Check: Sing the pitch C4 in short staccato bursts.', options: [], correct_answer: 'recorded', expected_pitch: 'C4' }
+          { id: 'dev2_q1', type: 'text', question: 'Which keyword is used to declare a variable in JavaScript?', options: ['let', 'var', 'const', 'All of the above'], correct_answer: 'All of the above' },
+          { id: 'dev2_q2', type: 'text', question: 'Which function is used to output messages to the console in JS?', options: ['console.log()', 'print()', 'alert()', 'document.write()'], correct_answer: 'console.log()' },
+          { id: 'dev2_q3', type: 'text', question: 'What does CSS stand for?', options: ['Cascading Style Sheets', 'Creative Style Systems', 'Computer Style Sheets', 'Colorful Style Sheets'], correct_answer: 'Cascading Style Sheets' },
+          { id: 'dev2_q4', type: 'voice', question: 'Practice: Say "JavaScript is a programming language" into the mic.', options: [], correct_answer: 'recorded', expected_pitch: 'C4' },
+          { id: 'dev2_q5', type: 'voice', question: 'Voice Pitch Check: Sing the pitch G to match the reference tone.', options: [], correct_answer: 'recorded', expected_pitch: 'G4' }
         ];
       }
-    } else if (inst === 'guitar') {
-      if (order === 1) {
-        return [
-          { id: 'g1_q1', type: 'text', question: 'Which string is the standard 6th string (thickest string on guitar)?', options: ['E', 'A', 'D', 'G'], correct_answer: 'E' },
-          { id: 'g1_q2', type: 'text', question: 'What are the metal strips across the fingerboard used to define notes?', options: ['Frets', 'Pegs', 'Bridge', 'Saddles'], correct_answer: 'Frets' },
-          { id: 'g1_q3', type: 'text', question: 'In standard guitar tuning, what note does the 5th string play?', options: ['E', 'A', 'D', 'G'], correct_answer: 'A' },
-          { id: 'g1_q4', type: 'voice', question: 'Guitar Check: Strum a clean G note.', options: [], correct_answer: 'recorded', expected_pitch: 'G3' },
-          { id: 'g1_q5', type: 'voice', question: 'Voice Check: Hum the root G pitch of the chord you played.', options: [], correct_answer: 'recorded', expected_pitch: 'G3' }
-        ];
-      } else if (order === 2) {
-        return [
-          { id: 'g2_q1', type: 'text', question: 'Which chord uses only three fingers and leaves the top E string open?', options: ['C major', 'G major', 'D major', 'A minor'], correct_answer: 'C major' },
-          { id: 'g2_q2', type: 'text', question: 'What is the note name of the first (thinnest) string on the guitar?', options: ['E', 'A', 'D', 'G'], correct_answer: 'E' },
-          { id: 'g2_q3', type: 'text', question: 'Which finger is typically placed on the 2nd fret of the G string for an A major chord?', options: ['Index', 'Middle', 'Ring', 'Pinky'], correct_answer: 'Middle' },
-          { id: 'g2_q4', type: 'voice', question: 'Guitar Check: Play a clean D note.', options: [], correct_answer: 'recorded', expected_pitch: 'D4' },
-          { id: 'g2_q5', type: 'voice', question: 'Voice Check: Sing/hum the D pitch.', options: [], correct_answer: 'recorded', expected_pitch: 'D4' }
-        ];
-      } else if (order === 3) {
-        return [
-          { id: 'g3_q1', type: 'text', question: 'What is the standard time signature for most beginner guitar strumming patterns?', options: ['3/4', '4/4', '6/8', '2/4'], correct_answer: '4/4' },
-          { id: 'g3_q2', type: 'text', question: 'What accessory is held in the hand to pluck or strum guitar strings?', options: ['Capo', 'Slide', 'Pick', 'Tuner'], correct_answer: 'Pick' },
-          { id: 'g3_q3', type: 'text', question: 'What does a "capo" do when clamped onto the guitar neck?', options: ['Lowers the pitch', 'Raises the pitch', 'Dampens the sound', 'Tunes the strings'], correct_answer: 'Raises the pitch' },
-          { id: 'g3_q4', type: 'voice', question: 'Guitar Check: Play a steady E note.', options: [], correct_answer: 'recorded', expected_pitch: 'E3' },
-          { id: 'g3_q5', type: 'voice', question: 'Voice Check: Sing/hum the low E pitch.', options: [], correct_answer: 'recorded', expected_pitch: 'E3' }
-        ];
-      } else {
-        return [
-          { id: 'g4_q1', type: 'text', question: 'Which note lies on the 3rd fret of the low E string?', options: ['G', 'A', 'F', 'F#'], correct_answer: 'G' },
-          { id: 'g4_q2', type: 'text', question: 'What is the chromatic scale?', options: ['A scale using only natural notes', 'A scale using all twelve semitones', 'A major scale', 'A minor scale'], correct_answer: 'A scale using all twelve semitones' },
-          { id: 'g4_q3', type: 'text', question: 'What does "tablature" (TAB) tell a guitarist?', options: ['Which note in sheet music to play', 'Where to place fingers on strings and frets', 'How loud to play', 'The tempo of the song'], correct_answer: 'Where to place fingers on strings and frets' },
-          { id: 'g4_q4', type: 'voice', question: 'Guitar Check: Play a standard A note.', options: [], correct_answer: 'recorded', expected_pitch: 'A4' },
-          { id: 'g4_q5', type: 'voice', question: 'Voice Check: Sing the A note clearly.', options: [], correct_answer: 'recorded', expected_pitch: 'A4' }
-        ];
-      }
-    } else if (inst === 'violin') {
-      if (order === 1) {
-        return [
-          { id: 'v1_q1', type: 'text', question: 'What is the standard name of the stick used to play the violin?', options: ['Baton', 'Bow', 'Rod', 'Stick'], correct_answer: 'Bow' },
-          { id: 'v1_q2', type: 'text', question: 'How many strings does a standard violin have?', options: ['3', '4', '5', '6'], correct_answer: '4' },
-          { id: 'v1_q3', type: 'text', question: 'Where does the violinist securely place their chin while playing?', options: ['Bridge', 'Pegbox', 'Chin rest', 'Tailpiece'], correct_answer: 'Chin rest' },
-          { id: 'v1_q4', type: 'voice', question: 'Violin Check: Draw a long bow stroke across the open A string.', options: [], correct_answer: 'recorded', expected_pitch: 'A4' },
-          { id: 'v1_q5', type: 'voice', question: 'Voice Check: Hum along with the pitch of the open A string.', options: [], correct_answer: 'recorded', expected_pitch: 'A4' }
-        ];
-      } else if (order === 2) {
-        return [
-          { id: 'v2_q1', type: 'text', question: 'Which finger is typically referred to as the "first finger" in violin technique?', options: ['Thumb', 'Index finger', 'Middle finger', 'Ring finger'], correct_answer: 'Index finger' },
-          { id: 'v2_q2', type: 'text', question: 'What is the purpose of placing tape on a beginner violin fingerboard?', options: ['Decorate the wood', 'Help with correct finger placement', 'Change pitch sound', 'Hold the strings'], correct_answer: 'Help with correct finger placement' },
-          { id: 'v2_q3', type: 'text', question: 'When pressing a string down onto the fingerboard, what happens to the pitch?', options: ['It gets lower', 'It stays the same', 'It gets higher', 'It stops vibrating'], correct_answer: 'It gets higher' },
-          { id: 'v2_q4', type: 'voice', question: 'Violin Check: Play a clear E note on the D string (first finger).', options: [], correct_answer: 'recorded', expected_pitch: 'E4' },
-          { id: 'v2_q5', type: 'voice', question: 'Voice Check: Hum the E pitch you just played.', options: [], correct_answer: 'recorded', expected_pitch: 'E4' }
-        ];
-      } else if (order === 3) {
-        return [
-          { id: 'v3_q1', type: 'text', question: 'What does the term "Legato" mean in bowing technique?', options: ['Short and detached notes', 'Plucking the strings', 'Smooth and connected strokes', 'Playing extremely loud'], correct_answer: 'Smooth and connected strokes' },
-          { id: 'v3_q2', type: 'text', question: 'What substance is rubbed onto the bow hair to increase friction and make the strings sound?', options: ['Wax', 'Rosin', 'Oil', 'Soap'], correct_answer: 'Rosin' },
-          { id: 'v3_q3', type: 'text', question: 'What is the term for plucking the violin strings with your fingers instead of using the bow?', options: ['Arpeggio', 'Staccato', 'Pizzicato', 'Vibrato'], correct_answer: 'Pizzicato' },
-          { id: 'v3_q4', type: 'voice', question: 'Violin Check: Play two short detached bows on the open E string.', options: [], correct_answer: 'recorded', expected_pitch: 'E5' },
-          { id: 'v3_q5', type: 'voice', question: 'Voice Check: Sing/hum the high E pitch of the open E string.', options: [], correct_answer: 'recorded', expected_pitch: 'E5' }
-        ];
-      } else {
-        return [
-          { id: 'v4_q1', type: 'text', question: 'Which note comes directly after G in the musical alphabet on a violin string?', options: ['H', 'A', 'F', 'C'], correct_answer: 'A' },
-          { id: 'v4_q2', type: 'text', question: 'What is the key signature of the easiest beginner violin scale: G Major?', options: ['One sharp', 'Two sharps', 'No sharps', 'One flat'], correct_answer: 'One sharp' },
-          { id: 'v4_q3', type: 'text', question: 'What does the symbol "V" mean in violin sheet music?', options: ['Up-bow', 'Down-bow', 'Vibrato', 'Volume up'], correct_answer: 'Up-bow' },
-          { id: 'v4_q4', type: 'voice', question: 'Violin Check: Play a full G note clearly.', options: [], correct_answer: 'recorded', expected_pitch: 'G4' },
-          { id: 'v4_q5', type: 'voice', question: 'Voice Check: Sing along with the G note.', options: [], correct_answer: 'recorded', expected_pitch: 'G4' }
-        ];
-      }
+    } else if (cat === 'management') {
+      return [
+        { id: 'pm_q1', type: 'text', question: 'What does "MVP" stand for in product management?', options: ['Minimum Viable Product', 'Most Valuable Product', 'Maximum Value Process', 'Model View Controller'], correct_answer: 'Minimum Viable Product' },
+        { id: 'pm_q2', type: 'text', question: 'Which agile meeting is held daily to review progress?', options: ['Daily Standup', 'Sprint Planning', 'Retrospective', 'Product Demo'], correct_answer: 'Daily Standup' },
+        { id: 'pm_q3', type: 'text', question: 'Who defines the product vision and roadmaps?', options: ['Product Manager', 'UX Designer', 'Software Engineer', 'QA Tester'], correct_answer: 'Product Manager' },
+        { id: 'pm_q4', type: 'voice', question: 'Practice: Read the term "Minimum Viable Product" into the mic.', options: [], correct_answer: 'recorded', expected_pitch: 'C4' },
+        { id: 'pm_q5', type: 'voice', question: 'Voice Pitch Check: Hum the pitch C to test your vocal stability.', options: [], correct_answer: 'recorded', expected_pitch: 'C4' }
+      ];
+    } else if (cat === 'datascience') {
+      return [
+        { id: 'ds_q1', type: 'text', question: 'Which Python library is primarily used for numerical calculations?', options: ['Numpy', 'Pandas', 'Matplotlib', 'Flask'], correct_answer: 'Numpy' },
+        { id: 'ds_q2', type: 'text', question: 'In statistics, what is the value that appears most frequently in a dataset?', options: ['Mode', 'Mean', 'Median', 'Variance'], correct_answer: 'Mode' },
+        { id: 'ds_q3', type: 'text', question: 'What type of machine learning uses labeled training data?', options: ['Supervised Learning', 'Unsupervised Learning', 'Reinforcement Learning', 'Clustering'], correct_answer: 'Supervised Learning' },
+        { id: 'ds_q4', type: 'voice', question: 'Practice: Say "Data Science and Artificial Intelligence" into the mic.', options: [], correct_answer: 'recorded', expected_pitch: 'C4' },
+        { id: 'ds_q5', type: 'voice', question: 'Voice Pitch Check: Match the pitch E of the reference tone.', options: [], correct_answer: 'recorded', expected_pitch: 'E4' }
+      ];
     } else {
-      if (order === 1) {
-        return [
-          { id: 'f1_q1', type: 'text', question: 'How do you hold the flute while playing?', options: ['Vertical', 'Horizontal', 'Diagonal', 'Upside down'], correct_answer: 'Horizontal' },
-          { id: 'f1_q2', type: 'text', question: 'What is the embouchure hole on the flute used for?', options: ['Blowing air', 'Placing fingers', 'Tuning the instrument', 'Holding it securely'], correct_answer: 'Blowing air' },
-          { id: 'f1_q3', type: 'text', question: 'Which finger covers the first tone hole of the flute?', options: ['Thumb', 'Index finger', 'Middle finger', 'Pinky'], correct_answer: 'Index finger' },
-          { id: 'f1_q4', type: 'voice', question: 'Flute Check: Play a long sustained "Sa" note for 3 seconds.', options: [], correct_answer: 'recorded', expected_pitch: 'C4' },
-          { id: 'f1_q5', type: 'voice', question: 'Voice Check: Hum the pitch of the note you just played.', options: [], correct_answer: 'recorded', expected_pitch: 'C4' }
-        ];
-      } else if (order === 2) {
-        return [
-          { id: 'f2_q1', type: 'text', question: 'What is the standard fingering note for covering the thumb key and first three finger keys on the left hand?', options: ['G', 'A', 'B', 'C'], correct_answer: 'G' },
-          { id: 'f2_q2', type: 'text', question: 'How do you achieve a higher octave note on the flute?', options: ['Press more keys', 'Blow faster, more focused air', 'Pull the headjoint out', 'Cover the end hole'], correct_answer: 'Blow faster, more focused air' },
-          { id: 'f2_q3', type: 'text', question: 'What is the function of the foot joint on the flute?', options: ['Plays the highest notes', 'Plays the lowest notes', 'Connects the headjoint', 'Adjusts the volume'], correct_answer: 'Plays the lowest notes' },
-          { id: 'f2_q4', type: 'voice', question: 'Flute Check: Play a sustained A note on the flute.', options: [], correct_answer: 'recorded', expected_pitch: 'A4' },
-          { id: 'f2_q5', type: 'voice', question: 'Voice Check: Sing/hum along with the A note pitch.', options: [], correct_answer: 'recorded', expected_pitch: 'A4' }
-        ];
-      } else if (order === 3) {
-        return [
-          { id: 'f3_q1', type: 'text', question: 'What syllable is recommended for standard tonguing to articulate notes on the flute?', options: ['Loo', 'Tu or Du', 'Pah', 'Shah'], correct_answer: 'Tu or Du' },
-          { id: 'f3_q2', type: 'text', question: 'What muscle should be engaged to provide strong, steady breath support?', options: ['Shoulder muscles', 'Diaphragm', 'Throat', 'Chest'], correct_answer: 'Diaphragm' },
-          { id: 'f3_q3', type: 'text', question: 'What does "slurring" mean in flute playing?', options: ['Tonguing every single note', 'Playing notes smoothly without tonguing', 'Playing notes out of tune', 'Playing as quiet as possible'], correct_answer: 'Playing notes smoothly without tonguing' },
-          { id: 'f3_q4', type: 'voice', question: 'Flute Check: Play four short articulated notes.', options: [], correct_answer: 'recorded', expected_pitch: 'G4' },
-          { id: 'f3_q5', type: 'voice', question: 'Voice Check: Sing the pitch G4 in four short bursts.', options: [], correct_answer: 'recorded', expected_pitch: 'G4' }
-        ];
-      } else {
-        return [
-          { id: 'f4_q1', type: 'text', question: 'Which note lies between F and G on the flute scale?', options: ['F#', 'G#', 'A#', 'E'], correct_answer: 'F#' },
-          { id: 'f4_q2', type: 'text', question: 'What key is pressed by the right hand pinky for almost all standard middle octave notes?', options: ['D# key', 'C key', 'G# key', 'B key'], correct_answer: 'D# key' },
-          { id: 'f4_q3', type: 'text', question: 'What happens if you pull the headjoint slightly out from the body of the flute?', options: ['The pitch goes flat', 'The pitch goes sharp', 'The sound becomes silent', 'The volume doubles'], correct_answer: 'The pitch goes flat' },
-          { id: 'f4_q4', type: 'voice', question: 'Flute Check: Play a smooth G note.', options: [], correct_answer: 'recorded', expected_pitch: 'G4' },
-          { id: 'f4_q5', type: 'voice', question: 'Voice Check: Sing along with the G note.', options: [], correct_answer: 'recorded', expected_pitch: 'G4' }
-        ];
-      }
+      return [
+        { id: 'mkt_q1', type: 'text', question: 'What does SEO stand for?', options: ['Search Engine Optimization', 'Social Engagement Operation', 'Structured Electronic Output', 'Site Evaluation Order'], correct_answer: 'Search Engine Optimization' },
+        { id: 'mkt_q2', type: 'text', question: 'Which metric calculates the percentage of users who clicked on a link?', options: ['Click-Through Rate (CTR)', 'Cost Per Click (CPC)', 'Return on Investment (ROI)', 'Bounce Rate'], correct_answer: 'Click-Through Rate (CTR)' },
+        { id: 'mkt_q3', type: 'text', question: 'Which Google tool is standard for web analytics and visitor tracking?', options: ['Google Analytics', 'Google Docs', 'Google Slides', 'Google Maps'], correct_answer: 'Google Analytics' },
+        { id: 'mkt_q4', type: 'voice', question: 'Practice: Read the phrase "Conversion Rate Optimization" into the mic.', options: [], correct_answer: 'recorded', expected_pitch: 'C4' },
+        { id: 'mkt_q5', type: 'voice', question: 'Voice Pitch Check: Hum the tone A to align with the reference frequency.', options: [], correct_answer: 'recorded', expected_pitch: 'A4' }
+      ];
     }
   };
 
@@ -892,20 +798,20 @@ const Course = () => {
           setQuiz(formattedQuiz);
         } else {
           const order = lessonObj?.lesson_order || currentLesson?.lesson_order || 1;
-          const finalData = generateDefaultQuiz(course?.instrument, order);
+          const finalData = generateDefaultQuiz(course?.category, order);
           setQuiz(finalData);
         }
       } else {
         console.warn('Backend quiz API returned an error, using premium offline fallback');
         const order = lessonObj?.lesson_order || currentLesson?.lesson_order || 1;
-        const finalData = generateDefaultQuiz(course?.instrument, order);
+        const finalData = generateDefaultQuiz(course?.category, order);
         setQuiz(finalData);
       }
       setCurrentQuestionIndex(0);
     } catch (error) {
       console.error('Error fetching quiz, using premium offline fallback:', error);
       const order = lessonObj?.lesson_order || currentLesson?.lesson_order || 1;
-      const finalData = generateDefaultQuiz(course?.instrument, order);
+      const finalData = generateDefaultQuiz(course?.category, order);
       setQuiz(finalData);
       setCurrentQuestionIndex(0);
     } finally {
@@ -1003,7 +909,7 @@ const Course = () => {
             <span className="text-display font-semibold tracking-tight">{course.title}</span>
           </div>
           <div className="nav-right">
-            <div className="course-badge">{course.instrument}</div>
+            <div className="course-badge">{course.category}</div>
             <div className="progress-pill">Lesson {currentLesson.lesson_order} / {course.lessons.length}</div>
           </div>
         </nav>

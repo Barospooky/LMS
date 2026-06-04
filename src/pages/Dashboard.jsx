@@ -19,6 +19,9 @@ const Dashboard = () => {
   const [user, setUser] = useState(null);
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedDifficulty, setSelectedDifficulty] = useState('');
   const btnResume = useMagnetic();
 
   useEffect(() => {
@@ -29,9 +32,18 @@ const Dashboard = () => {
     fetchCourses();
   }, []);
 
-  const fetchCourses = async () => {
+  const fetchCourses = async (searchTerm = '', cat = '', diff = '') => {
     try {
-      const response = await fetch(`${API_URL}/api/courses`, {
+      let url = `${API_URL}/api/courses`;
+      const queryParams = [];
+      if (searchTerm) queryParams.push(`search=${encodeURIComponent(searchTerm)}`);
+      if (cat) queryParams.push(`category=${encodeURIComponent(cat)}`);
+      if (diff) queryParams.push(`difficulty=${encodeURIComponent(diff)}`);
+      if (queryParams.length > 0) {
+        url += `?${queryParams.join('&')}`;
+      }
+
+      const response = await fetch(url, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
@@ -74,7 +86,7 @@ const Dashboard = () => {
         </div>
         <div className="sidebar-spotlight">
           <span className="sidebar-kicker">Member area</span>
-          <strong>Barani's studio</strong>
+          <strong>{user ? `${user.firstName}'s studio` : 'My study'}</strong>
           <p>Track progress, resume active modules, and unlock certificates.</p>
         </div>
         <nav className="sidebar-nav">
@@ -84,6 +96,11 @@ const Dashboard = () => {
           <a href="#" className="nav-item" onClick={(e) => { e.preventDefault(); navigate('/dashboard'); }}>
             <span>02 / All Courses</span>
           </a>
+          {user && user.role === 'admin' && (
+            <a href="#" className="nav-item admin-link" onClick={(e) => { e.preventDefault(); navigate('/admin/overview'); }}>
+              <span style={{ color: 'var(--accent)', fontWeight: 'bold' }}>⭐ Admin Panel</span>
+            </a>
+          )}
           <button
             className="nav-item logout-btn"
             onClick={handleLogout}
@@ -93,10 +110,10 @@ const Dashboard = () => {
           </button>
         </nav>
         <div className="sidebar-user">
-          <div className="user-avatar">{user ? user.firstName.charAt(0) : 'M'}</div>
+          <div className="user-avatar">{user ? user.firstName.charAt(0) : 'U'}</div>
           <div className="user-info">
-            <strong>{user ? `${user.firstName} ${user.lastName}` : 'Musician'}</strong>
-            <small>Premium Student</small>
+            <strong>{user ? `${user.firstName} ${user.lastName}` : 'User'}</strong>
+            <small>{user?.role === 'admin' ? 'Administrator' : 'Premium Student'}</small>
           </div>
         </div>
       </aside>
@@ -107,7 +124,7 @@ const Dashboard = () => {
             <div className="header-greet">
               <h1 className="text-serif tracking-tighter">Welcome back, {user ? user.firstName : 'Learner'}.</h1>
               <p className="text-secondary">
-                Your learning loop is now clear: discover a course, purchase it, watch the lessons, answer the module questions, and earn a certificate when the musical program is complete.
+                Your learning loop is now clear: discover a course, purchase it, watch the lessons, answer the module questions, and earn a certificate when the study program is complete.
               </p>
             </div>
           </Reveal>
@@ -132,7 +149,7 @@ const Dashboard = () => {
         {activeCourse && resumeLessonId && (
           <Reveal delay="0.2s">
             <section className="progress-section">
-              <div className="section-label">Continue Practice</div>
+              <div className="section-label">Continue Learning</div>
               <div className="progress-hero">
                 <div className="progress-content">
                   <h2 className="text-serif">{activeCourse.title}</h2>
@@ -143,9 +160,9 @@ const Dashboard = () => {
                       className="btn-primary magnetic"
                       onClick={() => navigate(`/course/${activeCourse.id}/${resumeLessonId}`)}
                     >
-                      Resume Practice
+                      Resume Learning
                     </button>
-                    <button className="btn-outline" onClick={() => navigate(`/${activeCourse.instrument}/${activeCourse.id}`)}>
+                    <button className="btn-outline" onClick={() => navigate(`/${activeCourse.category}/${activeCourse.id}`)}>
                       View Curriculum
                     </button>
                   </div>
@@ -170,9 +187,42 @@ const Dashboard = () => {
             <div className="section-header">
               <div>
                 <div className="section-label">Course Library</div>
-                <h2 className="text-serif">Choose your instrument journey.</h2>
+                <h2 className="text-serif">Choose your learning journey.</h2>
               </div>
               <p>Each card is designed like a premium program: visible pricing, ownership state, and fast access into the curriculum experience.</p>
+            </div>
+          </Reveal>
+
+          <Reveal delay="0.32s">
+            <div className="filter-controls">
+              <input 
+                type="text" 
+                placeholder="Search courses..." 
+                value={search} 
+                onChange={(e) => { setSearch(e.target.value); fetchCourses(e.target.value, selectedCategory, selectedDifficulty); }}
+                className="search-input"
+              />
+              <select 
+                value={selectedCategory} 
+                onChange={(e) => { setSelectedCategory(e.target.value); fetchCourses(search, e.target.value, selectedDifficulty); }}
+                className="filter-select"
+              >
+                <option value="">All Categories</option>
+                <option value="development">Development</option>
+                <option value="management">Management</option>
+                <option value="datascience">Data Science</option>
+                <option value="marketing">Marketing</option>
+              </select>
+              <select 
+                value={selectedDifficulty} 
+                onChange={(e) => { setSelectedDifficulty(e.target.value); fetchCourses(search, selectedCategory, e.target.value); }}
+                className="filter-select"
+              >
+                <option value="">All Difficulties</option>
+                <option value="beginner">Beginner</option>
+                <option value="intermediate">Intermediate</option>
+                <option value="advanced">Advanced</option>
+              </select>
             </div>
           </Reveal>
 
@@ -187,14 +237,15 @@ const Dashboard = () => {
 
                 return (
                   <Reveal key={course.id} delay={`${0.35 + index * 0.08}s`}>
-                    <div className="course-card" onClick={() => navigate(`/${course.instrument}/${course.id}`)}>
+                    <div className="course-card" onClick={() => navigate(`/${course.category}/${course.id}`)}>
                       <div className="card-thumb">
-                        <img src={buildCourseArtwork(course)} alt={course.title} />
+                        <img src={course.thumbnail || buildCourseArtwork(course)} alt={course.title} />
                       </div>
                       <div className="card-body">
-                        <div className="card-topline">
-                          <span className="card-tag">{course.instrument}</span>
-                          <span className="card-status">
+                        <div className="card-topline" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                          <span className="card-tag">{course.category}</span>
+                          <span className="difficulty-tag">{course.difficulty}</span>
+                          <span className="card-status" style={{ marginLeft: 'auto' }}>
                             {course.isPurchased ? (progress.certificateEarned ? 'Certified' : `${completion}% Complete`) : 'Available'}
                           </span>
                         </div>

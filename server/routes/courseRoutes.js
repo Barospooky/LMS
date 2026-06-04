@@ -1,9 +1,10 @@
 import express from 'express';
-import { getCourses, getCourseDetails, purchaseCourse, getLessonQuiz, saveUserProgress, getUserProgress } from '../controllers/courseController.js';
+import { getCourses, getCourseDetails, purchaseCourse, getLessonQuiz, saveUserProgress, getUserProgress, getLandingCourses } from '../controllers/courseController.js';
 import auth from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
+router.get('/landing', getLandingCourses);
 router.get('/quiz/:lessonId', auth, getLessonQuiz);
 router.get('/progress/:courseId', auth, getUserProgress);
 router.post('/progress', auth, saveUserProgress);

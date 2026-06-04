@@ -1,0 +1,305 @@
+/* Admin Dashboard Layout & Theme */
+.admin-layout {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 24px;
+  padding: 22px;
+}
+
+.admin-sidebar {
+  position: sticky;
+  top: 22px;
+  align-self: start;
+  min-height: calc(100vh - 44px);
+  padding: 30px 24px;
+  border-radius: 34px;
+  background: var(--bg-dark);
+  color: #ffffff;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-sidebar-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 0;
+  margin-bottom: 32px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.admin-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+.admin-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 54px;
+  padding: 0 18px;
+  border-radius: 18px;
+  color: rgba(255, 248, 241, 0.7);
+  background: transparent;
+  transition: var(--transition-fast);
+  text-decoration: none;
+  font-family: var(--font-display);
+  font-weight: 500;
+}
+
+.admin-nav-item:hover,
+.admin-nav-item.active {
+  color: var(--text-on-dark);
+  background: rgba(255, 248, 241, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(255, 248, 241, 0.06);
+}
+
+.admin-main {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.admin-header,
+.admin-section {
+  border-radius: 34px;
+  background: rgba(255, 251, 245, 0.68);
+  border: 1px solid rgba(255, 255, 255, 0.44);
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(18px);
+  padding: 34px;
+}
+
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.admin-header h1 {
+  font-size: clamp(34px, 4vw, 54px);
+  line-height: 0.95;
+  font-weight: 500;
+  margin: 0;
+}
+
+/* Stats Cards */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  padding: 24px;
+  border-radius: 28px;
+  background: rgba(255, 251, 245, 0.88);
+  border: 1px solid rgba(23, 20, 17, 0.08);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+  transition: var(--transition-smooth);
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+}
+
+.stat-card span {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--text-muted);
+}
+
+.stat-card strong {
+  font-family: var(--font-display);
+  font-size: 36px;
+  color: var(--primary);
+}
+
+/* Data Tables */
+.admin-table-container {
+  overflow-x: auto;
+  margin-top: 18px;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.admin-table th,
+.admin-table td {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.admin-table th {
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+.admin-table td {
+  font-size: 14px;
+  color: var(--text-main);
+  vertical-align: middle;
+}
+
+.admin-table tr:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* Badges */
+.admin-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.badge-admin {
+  background: rgba(211, 47, 47, 0.1);
+  color: var(--danger);
+}
+
+.badge-student {
+  background: rgba(0, 174, 177, 0.1);
+  color: var(--accent);
+}
+
+.badge-instructor {
+  background: rgba(46, 125, 50, 0.1);
+  color: var(--success);
+}
+
+/* Forms & Modals */
+.admin-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+  text-align: left;
+}
+
+.admin-form-group label {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.admin-input,
+.admin-textarea,
+.admin-select {
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  background: rgba(255, 255, 255, 0.9);
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--text-main);
+  outline: none;
+  transition: var(--transition-fast);
+}
+
+.admin-input:focus,
+.admin-textarea:focus,
+.admin-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.admin-textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+/* Action Buttons */
+.btn-sm {
+  padding: 8px 16px;
+  font-size: 11px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border: none;
+}
+
+.btn-edit {
+  background: var(--accent-soft);
+  color: var(--accent);
+  margin-right: 8px;
+}
+
+.btn-edit:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+.btn-delete {
+  background: rgba(211, 47, 47, 0.1);
+  color: var(--danger);
+}
+
+.btn-delete:hover {
+  background: var(--danger);
+  color: #fff;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+/* Layout Splitter for Manager Views */
+.manager-split {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 24px;
+}
+
+.manager-card {
+  background: rgba(255, 251, 245, 0.88);
+  border: 1px solid rgba(23, 20, 17, 0.08);
+  border-radius: 28px;
+  padding: 28px;
+}
+
+@media (max-width: 1024px) {
+  .admin-layout {
+    grid-template-columns: 1fr;
+    padding: 14px;
+  }
+  .admin-sidebar {
+    position: relative;
+    top: 0;
+    min-height: auto;
+  }
+  .manager-split {
+    grid-template-columns: 1fr;
+  }
+}

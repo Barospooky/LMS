@@ -30,10 +30,15 @@ const Curriculum = () => {
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [user, setUser] = useState(null);
   const btnBack = useMagnetic();
   const btnPurchase = useMagnetic();
 
   useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
     fetchCourseDetails();
   }, [id]);
 
@@ -158,7 +163,7 @@ const Curriculum = () => {
           />
         </div>
         <div className="sidebar-spotlight">
-          <span className="sidebar-kicker">Barani's studio</span>
+          <span className="sidebar-kicker">{user ? `${user.firstName}'s study` : "Member area"}</span>
           <strong>{course?.title || 'Course details'}</strong>
           <p>Track progress, resume active modules, and unlock certificates.</p>
         </div>
@@ -169,6 +174,11 @@ const Curriculum = () => {
           <a href="#" className="nav-item" onClick={(e) => { e.preventDefault(); navigate('/dashboard'); }}>
             <span>02 / All Courses</span>
           </a>
+          {user && user.role === 'admin' && (
+            <a href="#" className="nav-item admin-link" onClick={(e) => { e.preventDefault(); navigate('/admin/overview'); }}>
+              <span style={{ color: 'var(--accent)', fontWeight: 'bold' }}>⭐ Admin Panel</span>
+            </a>
+          )}
         </nav>
       </aside>
 
@@ -181,15 +191,19 @@ const Curriculum = () => {
               </button>
               <h1 className="text-serif tracking-tighter">{course.title}</h1>
               <p className="text-secondary">
-                {course.description} Purchase the course once to unlock all lesson videos, complete each quiz checkpoint, and generate a final certificate for this musical path.
+                {course.description} Purchase the course once to unlock all lesson videos, complete each quiz checkpoint, and generate a final certificate for this learning path.
               </p>
             </div>
           </Reveal>
           <Reveal delay="0.1s">
             <div className="header-aside">
               <div className="summary-tile">
-                <span>Instrument</span>
-                <strong>{course.instrument}</strong>
+                <span>Category</span>
+                <strong style={{ textTransform: 'capitalize' }}>{course.category}</strong>
+              </div>
+              <div className="summary-tile">
+                <span>Difficulty</span>
+                <strong style={{ textTransform: 'capitalize' }}>{course.difficulty}</strong>
               </div>
               <div className="summary-tile">
                 <span>Lessons</span>
