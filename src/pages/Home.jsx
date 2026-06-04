@@ -301,7 +301,7 @@ const Home = () => {
           <Reveal>
             <div style={{ textAlign: 'center', maxWidth: '800px', margin: '0 auto' }}>
               <div className="section-label" style={{ color: 'var(--accent)', fontWeight: 'bold' }}>Our Academy</div>
-              <h2 className="text-serif" style={{ fontSize: '42px', marginTop: '10px' }}>Designed for Educational Excellence</h2>
+              <h2 className="text-serif" style={{ fontSize: 'clamp(28px, 4vw, 42px)', marginTop: '10px' }}>Designed for Educational Excellence</h2>
               <p className="text-secondary" style={{ fontSize: '16px', lineHeight: '1.7', marginTop: '16px' }}>
                 Amplepro Academy provides a state-of-the-art corporate learning environment. Our courses are structured by industry practitioners and verified using artificial intelligence, guaranteeing structured outcomes and verifiable certificates.
               </p>
@@ -338,7 +338,7 @@ const Home = () => {
           <Reveal>
             <div className="landing-courses-header" style={{ textAlign: 'center', maxWidth: '600px', margin: '0 auto 48px' }}>
               <div className="section-label" style={{ color: 'var(--accent)', fontWeight: 'bold' }}>Programs Catalog</div>
-              <h2 className="text-serif" style={{ fontSize: '42px', marginTop: '10px' }}>Our Educational Programs</h2>
+              <h2 className="text-serif" style={{ fontSize: 'clamp(28px, 4vw, 42px)', marginTop: '10px' }}>Our Educational Programs</h2>
               <p className="text-secondary" style={{ fontSize: '15px' }}>Browse through our self-paced paths, view course details, and enroll to unlock modules.</p>
             </div>
           </Reveal>
@@ -407,7 +407,7 @@ const Home = () => {
                 {authTab === 'login' && (
                   <form className="auth-form active" onSubmit={handleLogin}>
                     <div className="form-header">
-                      <h2 className="text-serif" style={{ fontSize: '28px', marginBottom: '8px' }}>Welcome back</h2>
+                      <h2 className="text-serif" style={{ fontSize: 'clamp(22px, 3vw, 28px)', marginBottom: '8px' }}>Welcome back</h2>
                       <p style={{ fontSize: '13px' }}>Pick up your purchased courses, continue lessons, and complete assessments.</p>
                     </div>
                     <div className="input-group">
@@ -448,7 +448,7 @@ const Home = () => {
                 {authTab === 'signup' && (
                   <form className="auth-form active" onSubmit={handleSignup}>
                     <div className="form-header">
-                      <h2 className="text-serif" style={{ fontSize: '28px', marginBottom: '8px' }}>Start learning</h2>
+                      <h2 className="text-serif" style={{ fontSize: 'clamp(22px, 3vw, 28px)', marginBottom: '8px' }}>Start learning</h2>
                       <p style={{ fontSize: '13px' }}>Create your account to unlock self-paced professional development modules.</p>
                     </div>
                     <div className="input-row" style={{ gap: '10px' }}>
