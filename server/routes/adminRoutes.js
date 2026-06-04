@@ -11,7 +11,7 @@ import {
   deleteLesson
 } from '../controllers/adminController.js';
 import auth from '../middleware/authMiddleware.js';
-import requireRole from '../middleware/roleMiddleware.js';
+import { requireRole } from '../middleware/roleMiddleware.js';
 
 const router = express.Router();
 
