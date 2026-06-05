@@ -1,29 +1,43 @@
-import React, { useEffect, useState } from 'react';
-import { Plus, Edit3, Trash2, BookOpen, Layers, Video, AlignLeft, RefreshCw } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Plus, Edit3, Trash2, BookOpen, Layers, Video, Search } from 'lucide-react';
 import Reveal from '../../components/Reveal';
+import { formatCategoryLabel, formatInrCurrency, getCategoryOptions } from '../../utils/category';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+const emptyCourseForm = {
+  title: '',
+  description: '',
+  price: '',
+  category: 'development',
+  difficulty: 'beginner',
+  thumbnail: '',
+};
+
+const emptyLessonForm = {
+  title: '',
+  video_url: '',
+  lesson_order: 1,
+  transcript: '',
+};
 
 const CourseManager = () => {
   const [courses, setCourses] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [courseQuery, setCourseQuery] = useState('');
 
-  // Course Form Modal States
   const [showCourseForm, setShowCourseForm] = useState(false);
   const [isEditingCourse, setIsEditingCourse] = useState(false);
-  const [courseFormData, setCourseFormData] = useState({
-    title: '', description: '', price: '', category: 'development', difficulty: 'beginner', thumbnail: ''
-  });
+  const [courseFormData, setCourseFormData] = useState(emptyCourseForm);
 
-  // Lesson Form Modal States
   const [showLessonForm, setShowLessonForm] = useState(false);
   const [isEditingLesson, setIsEditingLesson] = useState(false);
   const [editingLessonId, setEditingLessonId] = useState(null);
-  const [lessonFormData, setLessonFormData] = useState({
-    title: '', video_url: '', lesson_order: 1, transcript: ''
-  });
+  const [lessonFormData, setLessonFormData] = useState(emptyLessonForm);
+
+  const [pendingDelete, setPendingDelete] = useState(null);
 
   useEffect(() => {
     fetchCourses();
@@ -36,14 +50,14 @@ const CourseManager = () => {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
       });
-      const data = await response.json();
+      const responseData = await response.json();
       if (response.ok) {
-        setCourses(data);
+        setCourses(responseData);
       } else {
-        setError(data.message || 'Failed to load courses');
+        setError(responseData.message || 'Failed to load courses');
       }
-    } catch (err) {
-      console.error(err);
+    } catch (fetchError) {
+      console.error(fetchError);
       setError('Connection to server failed');
     } finally {
       setLoading(false);
@@ -57,24 +71,54 @@ const CourseManager = () => {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
       });
-      const data = await response.json();
+      const responseData = await response.json();
       if (response.ok) {
-        setSelectedCourse(data);
+        setSelectedCourse(responseData);
       } else {
-        alert(data.message || 'Failed to fetch course details');
+        alert(responseData.message || 'Failed to fetch course details');
       }
-    } catch (err) {
-      console.error(err);
+    } catch (fetchError) {
+      console.error(fetchError);
     }
+  };
+
+  const filteredCourses = useMemo(() => {
+    const query = courseQuery.trim().toLowerCase();
+    if (!query) return courses;
+
+    return courses.filter((course) => {
+      const title = (course.title || '').toLowerCase();
+      const description = (course.description || '').toLowerCase();
+      const category = formatCategoryLabel(course.category).toLowerCase();
+      const difficulty = (course.difficulty || '').toLowerCase();
+      return (
+        title.includes(query) ||
+        description.includes(query) ||
+        category.includes(query) ||
+        difficulty.includes(query)
+      );
+    });
+  }, [courseQuery, courses]);
+
+  const formatRowPrice = (price) => formatInrCurrency(price);
+
+  const resetCourseForm = () => {
+    setIsEditingCourse(false);
+    setCourseFormData(emptyCourseForm);
+  };
+
+  const resetLessonForm = () => {
+    setIsEditingLesson(false);
+    setEditingLessonId(null);
+    setLessonFormData(emptyLessonForm);
   };
 
   const handleSelectCourse = (course) => {
     fetchCourseDetails(course.id);
   };
 
-  // Course Submit
-  const handleCourseSubmit = async (e) => {
-    e.preventDefault();
+  const handleCourseSubmit = async (event) => {
+    event.preventDefault();
     const method = isEditingCourse ? 'PUT' : 'POST';
     const endpoint = isEditingCourse
       ? `${API_URL}/api/admin/courses/${courseFormData.id}`
@@ -90,26 +134,72 @@ const CourseManager = () => {
         body: JSON.stringify(courseFormData),
       });
 
-      const data = await response.json();
+      const responseData = await response.json();
       if (response.ok) {
         setShowCourseForm(false);
+        resetCourseForm();
         fetchCourses();
         if (isEditingCourse && selectedCourse?.id === courseFormData.id) {
           fetchCourseDetails(courseFormData.id);
         }
         alert(isEditingCourse ? 'Course updated successfully' : 'Course created successfully');
       } else {
-        alert(data.message || 'Failed to save course');
+        alert(responseData.message || 'Failed to save course');
       }
-    } catch (err) {
-      console.error(err);
+    } catch (saveError) {
+      console.error(saveError);
       alert('Error saving course');
     }
   };
 
-  // Course Edit Press
-  const handleEditCoursePress = (course, e) => {
-    e.stopPropagation();
+  const requestCourseDelete = (courseId, courseTitle, event) => {
+    event.stopPropagation();
+    setPendingDelete({ type: 'course', id: courseId, title: courseTitle });
+  };
+
+  const requestLessonDelete = (lessonId, lessonTitle) => {
+    setPendingDelete({ type: 'lesson', id: lessonId, title: lessonTitle });
+  };
+
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+
+    const isCourseDelete = pendingDelete.type === 'course';
+    const endpoint = isCourseDelete
+      ? `${API_URL}/api/admin/courses/${pendingDelete.id}`
+      : `${API_URL}/api/admin/lessons/${pendingDelete.id}`;
+
+    try {
+      const response = await fetch(endpoint, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+
+      const responseData = await response.json();
+      if (response.ok) {
+        alert(isCourseDelete ? 'Course deleted successfully' : 'Lesson deleted successfully');
+        setPendingDelete(null);
+        fetchCourses();
+        if (isCourseDelete) {
+          if (selectedCourse?.id === pendingDelete.id) {
+            setSelectedCourse(null);
+          }
+        } else if (selectedCourse?.id) {
+          fetchCourseDetails(selectedCourse.id);
+        }
+      } else {
+        alert(responseData.message || `Failed to delete ${pendingDelete.type}`);
+      }
+    } catch (deleteError) {
+      console.error(deleteError);
+      alert(`Error deleting ${pendingDelete.type}`);
+    }
+  };
+
+  const handleEditCoursePress = (course, event) => {
+    event.stopPropagation();
     setIsEditingCourse(true);
     setCourseFormData({
       id: course.id,
@@ -123,38 +213,8 @@ const CourseManager = () => {
     setShowCourseForm(true);
   };
 
-  // Course Delete Press
-  const handleDeleteCourse = async (courseId, e) => {
-    e.stopPropagation();
-    if (!window.confirm('Are you sure you want to delete this course?')) return;
-
-    try {
-      const response = await fetch(`${API_URL}/api/admin/courses/${courseId}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-
-      const data = await response.json();
-      if (response.ok) {
-        alert('Course deleted successfully');
-        fetchCourses();
-        if (selectedCourse?.id === courseId) {
-          setSelectedCourse(null);
-        }
-      } else {
-        alert(data.message || 'Failed to delete course');
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Error deleting course');
-    }
-  };
-
-  // Lesson Submit
-  const handleLessonSubmit = async (e) => {
-    e.preventDefault();
+  const handleLessonSubmit = async (event) => {
+    event.preventDefault();
     const method = isEditingLesson ? 'PUT' : 'POST';
     const endpoint = isEditingLesson
       ? `${API_URL}/api/admin/lessons/${editingLessonId}`
@@ -170,21 +230,21 @@ const CourseManager = () => {
         body: JSON.stringify(lessonFormData),
       });
 
-      const data = await response.json();
+      const responseData = await response.json();
       if (response.ok) {
         setShowLessonForm(false);
+        resetLessonForm();
         fetchCourseDetails(selectedCourse.id);
         alert(isEditingLesson ? 'Lesson updated successfully' : 'Lesson added successfully');
       } else {
-        alert(data.message || 'Failed to save lesson');
+        alert(responseData.message || 'Failed to save lesson');
       }
-    } catch (err) {
-      console.error(err);
+    } catch (saveError) {
+      console.error(saveError);
       alert('Error saving lesson');
     }
   };
 
-  // Lesson Edit Press
   const handleEditLessonPress = (lesson) => {
     setIsEditingLesson(true);
     setEditingLessonId(lesson.id);
@@ -197,33 +257,11 @@ const CourseManager = () => {
     setShowLessonForm(true);
   };
 
-  // Lesson Delete Press
-  const handleDeleteLesson = async (lessonId) => {
-    if (!window.confirm('Are you sure you want to delete this lesson?')) return;
-
-    try {
-      const response = await fetch(`${API_URL}/api/admin/lessons/${lessonId}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-
-      const data = await response.json();
-      if (response.ok) {
-        alert('Lesson deleted successfully');
-        fetchCourseDetails(selectedCourse.id);
-      } else {
-        alert(data.message || 'Failed to delete lesson');
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Error deleting lesson');
-    }
-  };
-
   if (loading) return <div>Loading courses...</div>;
   if (error) return <div style={{ color: 'var(--danger)', padding: '20px' }}>{error}</div>;
+
+  const categoryOptions = getCategoryOptions();
+  const lessonItems = selectedCourse?.lessons || [];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -236,8 +274,7 @@ const CourseManager = () => {
         </Reveal>
         <button
           onClick={() => {
-            setIsEditingCourse(false);
-            setCourseFormData({ title: '', description: '', price: '', category: 'development', difficulty: 'beginner', thumbnail: '' });
+            resetCourseForm();
             setShowCourseForm(true);
           }}
           className="btn-primary"
@@ -248,12 +285,27 @@ const CourseManager = () => {
       </header>
 
       <div className="manager-split">
-        {/* Left Side: Course List */}
         <Reveal delay="0.1s">
           <div className="admin-section">
-            <h2 className="text-serif" style={{ fontSize: '24px', marginBottom: '18px' }}>Available Courses</h2>
+            <div className="section-toolbar">
+              <div>
+                <h2 className="text-serif" style={{ fontSize: '24px', marginBottom: '8px' }}>Available Courses</h2>
+                <p className="text-secondary" style={{ margin: 0 }}>Search, edit, or remove courses from the library.</p>
+              </div>
+              <div className="section-search">
+                <Search size={14} />
+                <input
+                  type="text"
+                  placeholder="Search courses..."
+                  value={courseQuery}
+                  onChange={(event) => setCourseQuery(event.target.value)}
+                  className="admin-input"
+                />
+              </div>
+            </div>
+
             <div className="admin-table-container">
-              <table className="admin-table">
+              <table className="admin-table admin-table-course-manager">
                 <thead>
                   <tr>
                     <th>Title</th>
@@ -263,79 +315,123 @@ const CourseManager = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {courses.map((course) => (
-                    <tr
-                      key={course.id}
-                      onClick={() => handleSelectCourse(course)}
-                      style={{
-                        cursor: 'pointer',
-                        background: selectedCourse?.id === course.id ? 'rgba(0,174,177,0.06)' : 'transparent',
-                        fontWeight: selectedCourse?.id === course.id ? 'bold' : 'normal'
-                      }}
-                    >
-                      <td>{course.title}</td>
-                      <td style={{ textTransform: 'capitalize' }}>{course.category}</td>
-                      <td>₹{course.price}</td>
-                      <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
-                        <button onClick={(e) => handleEditCoursePress(course, e)} className="btn-sm btn-edit"><Edit3 size={12} /></button>
-                        <button onClick={(e) => handleDeleteCourse(course.id, e)} className="btn-sm btn-delete"><Trash2 size={12} /></button>
-                      </td>
+                  {filteredCourses.length === 0 ? (
+                    <tr>
+                      <td colSpan="4" style={{ textAlign: 'center', opacity: 0.5 }}>No matching courses found.</td>
                     </tr>
-                  ))}
+                  ) : (
+                    filteredCourses.map((course) => (
+                      <tr
+                        key={course.id}
+                        onClick={() => handleSelectCourse(course)}
+                        style={{
+                          cursor: 'pointer',
+                          background: selectedCourse?.id === course.id ? 'rgba(0,174,177,0.06)' : 'transparent',
+                          fontWeight: selectedCourse?.id === course.id ? 'bold' : 'normal',
+                        }}
+                      >
+                        <td className="course-title-cell">
+                          <strong>{course.title}</strong>
+                        </td>
+                        <td>{formatCategoryLabel(course.category)}</td>
+                        <td>{formatRowPrice(course.price)}</td>
+                        <td style={{ textAlign: 'right' }} onClick={(event) => event.stopPropagation()}>
+                          <button onClick={(event) => handleEditCoursePress(course, event)} className="btn-sm btn-edit" aria-label={`Edit ${course.title}`}>
+                            <Edit3 size={12} />
+                          </button>
+                          <button
+                            onClick={(event) => requestCourseDelete(course.id, course.title, event)}
+                            className="btn-sm btn-delete"
+                            aria-label={`Delete ${course.title}`}
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
           </div>
         </Reveal>
 
-        {/* Right Side: Selected Course Details & Syllabus */}
         <Reveal delay="0.2s">
           <div className="admin-section">
             {selectedCourse ? (
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--line-soft)', paddingBottom: '16px', marginBottom: '16px' }}>
+                <div className="course-detail-header">
                   <div>
-                    <span style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 'bold' }}>{selectedCourse.category} - {selectedCourse.difficulty}</span>
-                    <h2 className="text-serif" style={{ fontSize: '28px', margin: '4px 0 8px' }}>{selectedCourse.title}</h2>
-                    <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: 0 }}>{selectedCourse.description}</p>
+                    <span className="course-detail-kicker">
+                      {formatCategoryLabel(selectedCourse.category)} - {String(selectedCourse.difficulty || '').replace(/^\w/, (letter) => letter.toUpperCase())}
+                    </span>
+                    <h2 className="text-serif course-detail-title">{selectedCourse.title}</h2>
+                    <p className="course-detail-description">{selectedCourse.description}</p>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <h3 style={{ margin: 0, fontSize: '18px', display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <Layers size={18} /> Syllabus ({selectedCourse.lessons?.length || 0} Lessons)
+                <div className="course-syllabus-toolbar">
+                  <h3 className="course-syllabus-title">
+                    <Layers size={18} /> Syllabus ({lessonItems.length} Lessons)
                   </h3>
                   <button
                     onClick={() => {
                       setIsEditingLesson(false);
-                      setLessonFormData({ title: '', video_url: '', lesson_order: (selectedCourse.lessons?.length || 0) + 1, transcript: '' });
+                      setEditingLessonId(null);
+                      setLessonFormData({
+                        title: '',
+                        video_url: '',
+                        lesson_order: lessonItems.length + 1,
+                        transcript: '',
+                      });
                       setShowLessonForm(true);
                     }}
                     className="btn-sm btn-edit"
-                    style={{ display: 'flex', gap: '4px', alignItems: 'center' }}
                   >
                     <Plus size={12} /> Add Lesson
                   </button>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {selectedCourse.lessons?.length === 0 ? (
+                  {lessonItems.length === 0 ? (
                     <p style={{ opacity: 0.5, textAlign: 'center', padding: '20px' }}>This course has no lessons yet. Click "Add Lesson" to get started.</p>
                   ) : (
-                    selectedCourse.lessons?.map((lesson, idx) => (
-                      <div key={lesson.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', borderRadius: '18px', background: 'rgba(255,255,255,0.6)', border: '1px solid var(--line-soft)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <span style={{ width: '28px', height: '28px', background: 'var(--accent-soft)', color: 'var(--accent)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifycontent: 'center', fontSize: '12px', fontWeight: 'bold', justifyContent: 'center' }}>
-                            {lesson.lesson_order}
-                          </span>
+                    lessonItems.map((lesson) => (
+                      <div key={lesson.id} className="lesson-card">
+                        <div className="lesson-card-copy">
+                          <span className="lesson-order-badge">{lesson.lesson_order}</span>
                           <div>
-                            <strong style={{ display: 'block', fontSize: '14px' }}>{lesson.title}</strong>
-                            <small style={{ color: 'var(--text-muted)', fontSize: '11px', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '280px', whiteSpace: 'nowrap' }}>{lesson.video_url}</small>
+                            <strong className="lesson-title">{lesson.title}</strong>
+                            <div className="lesson-meta-row">
+                              <Video size={12} />
+                              <span>Video Lesson</span>
+                            </div>
+                            <small className="lesson-transcript-preview">
+                              {lesson.transcript ? 'Transcript / study guide attached' : 'No transcript attached'}
+                            </small>
                           </div>
                         </div>
-                        <div style={{ display: 'flex', gap: '6px' }}>
-                          <button onClick={() => handleEditLessonPress(lesson)} className="btn-sm btn-edit" style={{ padding: '6px 12px' }}>Edit</button>
-                          <button onClick={() => handleDeleteLesson(lesson.id)} className="btn-sm btn-delete" style={{ padding: '6px 12px' }}>Delete</button>
+                        <div className="lesson-card-actions">
+                          {lesson.video_url ? (
+                            <a
+                              href={lesson.video_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="btn-sm btn-outline lesson-open-link"
+                            >
+                              Open Resource
+                            </a>
+                          ) : (
+                            <span className="btn-sm btn-outline lesson-open-link" style={{ opacity: 0.6, cursor: 'not-allowed' }}>
+                              No Resource
+                            </span>
+                          )}
+                          <button onClick={() => handleEditLessonPress(lesson)} className="btn-sm btn-edit">
+                            Edit
+                          </button>
+                          <button onClick={() => requestLessonDelete(lesson.id, lesson.title)} className="btn-sm btn-delete">
+                            Delete
+                          </button>
                         </div>
                       </div>
                     ))
@@ -352,10 +448,9 @@ const CourseManager = () => {
         </Reveal>
       </div>
 
-      {/* Course Form Modal */}
       {showCourseForm && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '520px', textAlign: 'left' }}>
+          <div className="modal-content admin-modal-content course-modal" style={{ textAlign: 'left' }}>
             <h2 className="text-serif" style={{ fontSize: '28px', marginBottom: '20px' }}>
               {isEditingCourse ? 'Edit Course Settings' : 'Create New Course'}
             </h2>
@@ -366,7 +461,7 @@ const CourseManager = () => {
                   type="text"
                   required
                   value={courseFormData.title}
-                  onChange={(e) => setCourseFormData({ ...courseFormData, title: e.target.value })}
+                  onChange={(event) => setCourseFormData({ ...courseFormData, title: event.target.value })}
                   className="admin-input"
                 />
               </div>
@@ -376,12 +471,12 @@ const CourseManager = () => {
                 <textarea
                   required
                   value={courseFormData.description}
-                  onChange={(e) => setCourseFormData({ ...courseFormData, description: e.target.value })}
+                  onChange={(event) => setCourseFormData({ ...courseFormData, description: event.target.value })}
                   className="admin-textarea"
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div className="admin-grid-2">
                 <div className="admin-form-group">
                   <label>Price (INR)</label>
                   <input
@@ -389,7 +484,7 @@ const CourseManager = () => {
                     step="0.01"
                     required
                     value={courseFormData.price}
-                    onChange={(e) => setCourseFormData({ ...courseFormData, price: e.target.value })}
+                    onChange={(event) => setCourseFormData({ ...courseFormData, price: event.target.value })}
                     className="admin-input"
                   />
                 </div>
@@ -397,7 +492,7 @@ const CourseManager = () => {
                   <label>Difficulty</label>
                   <select
                     value={courseFormData.difficulty}
-                    onChange={(e) => setCourseFormData({ ...courseFormData, difficulty: e.target.value })}
+                    onChange={(event) => setCourseFormData({ ...courseFormData, difficulty: event.target.value })}
                     className="admin-select"
                   >
                     <option value="beginner">Beginner</option>
@@ -407,18 +502,17 @@ const CourseManager = () => {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div className="admin-grid-2">
                 <div className="admin-form-group">
                   <label>Category</label>
                   <select
                     value={courseFormData.category}
-                    onChange={(e) => setCourseFormData({ ...courseFormData, category: e.target.value })}
+                    onChange={(event) => setCourseFormData({ ...courseFormData, category: event.target.value })}
                     className="admin-select"
                   >
-                    <option value="development">Development</option>
-                    <option value="management">Management</option>
-                    <option value="datascience">Data Science</option>
-                    <option value="marketing">Marketing</option>
+                    {categoryOptions.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
                   </select>
                 </div>
                 <div className="admin-form-group">
@@ -426,7 +520,7 @@ const CourseManager = () => {
                   <input
                     type="text"
                     value={courseFormData.thumbnail}
-                    onChange={(e) => setCourseFormData({ ...courseFormData, thumbnail: e.target.value })}
+                    onChange={(event) => setCourseFormData({ ...courseFormData, thumbnail: event.target.value })}
                     className="admin-input"
                   />
                 </div>
@@ -441,10 +535,9 @@ const CourseManager = () => {
         </div>
       )}
 
-      {/* Lesson Form Modal */}
       {showLessonForm && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '560px', textAlign: 'left' }}>
+          <div className="modal-content admin-modal-content lesson-modal" style={{ textAlign: 'left' }}>
             <h2 className="text-serif" style={{ fontSize: '28px', marginBottom: '20px' }}>
               {isEditingLesson ? 'Edit Lesson Parameters' : 'Add New Lesson to Syllabus'}
             </h2>
@@ -455,19 +548,19 @@ const CourseManager = () => {
                   type="text"
                   required
                   value={lessonFormData.title}
-                  onChange={(e) => setLessonFormData({ ...lessonFormData, title: e.target.value })}
+                  onChange={(event) => setLessonFormData({ ...lessonFormData, title: event.target.value })}
                   className="admin-input"
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr', gap: '12px' }}>
+              <div className="admin-grid-lesson">
                 <div className="admin-form-group">
                   <label>Video URL (YouTube)</label>
                   <input
-                    type="text"
+                    type="url"
                     required
                     value={lessonFormData.video_url}
-                    onChange={(e) => setLessonFormData({ ...lessonFormData, video_url: e.target.value })}
+                    onChange={(event) => setLessonFormData({ ...lessonFormData, video_url: event.target.value })}
                     className="admin-input"
                   />
                 </div>
@@ -477,7 +570,7 @@ const CourseManager = () => {
                     type="number"
                     required
                     value={lessonFormData.lesson_order}
-                    onChange={(e) => setLessonFormData({ ...lessonFormData, lesson_order: e.target.value })}
+                    onChange={(event) => setLessonFormData({ ...lessonFormData, lesson_order: event.target.value })}
                     className="admin-input"
                   />
                 </div>
@@ -487,7 +580,7 @@ const CourseManager = () => {
                 <label>Lesson Transcript / Content Study Guide</label>
                 <textarea
                   value={lessonFormData.transcript}
-                  onChange={(e) => setLessonFormData({ ...lessonFormData, transcript: e.target.value })}
+                  onChange={(event) => setLessonFormData({ ...lessonFormData, transcript: event.target.value })}
                   className="admin-textarea"
                   placeholder="Insert transcript paragraphs here to guide the automated AI quiz generator engine..."
                   style={{ minHeight: '140px' }}
@@ -499,6 +592,24 @@ const CourseManager = () => {
                 <button type="submit" className="btn-primary">Save Lesson</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {pendingDelete && (
+        <div className="modal-overlay">
+          <div className="modal-content confirm-modal">
+            <h2 className="text-serif" style={{ fontSize: '28px', marginBottom: '12px' }}>Are you sure?</h2>
+            <p className="text-secondary" style={{ marginTop: 0 }}>
+              This will permanently delete <strong>{pendingDelete.title}</strong>.
+            </p>
+            <p className="text-secondary" style={{ marginBottom: '0' }}>
+              Please confirm before removing this {pendingDelete.type}.
+            </p>
+            <div className="modal-actions">
+              <button type="button" className="btn-outline" onClick={() => setPendingDelete(null)}>Cancel</button>
+              <button type="button" className="btn-primary" onClick={confirmDelete}>Delete Permanently</button>
+            </div>
           </div>
         </div>
       )}

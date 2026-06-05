@@ -6,6 +6,7 @@ import '../styles/course.css';
 import Reveal from '../components/Reveal';
 import useMagnetic from '../hooks/useMagnetic';
 import YouTubeLessonPlayer from '../components/YouTubeLessonPlayer';
+import { formatCategoryLabel } from '../utils/category';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -909,7 +910,7 @@ const Course = () => {
             <span className="text-display font-semibold tracking-tight">{course.title}</span>
           </div>
           <div className="nav-right">
-            <div className="course-badge">{course.category}</div>
+            <div className="course-badge">{formatCategoryLabel(course.category)}</div>
             <div className="progress-pill">Lesson {currentLesson.lesson_order} / {course.lessons.length}</div>
           </div>
         </nav>

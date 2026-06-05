@@ -1,17 +1,19 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Bot, User, Minimize2 } from 'lucide-react';
-import './Chatbot.css'; // We'll create some basic styles here
+import './Chatbot.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const Chatbot = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Hi there! I am your AI Music Assistant. How can I help you with your musical journey today?' }
+    { role: 'assistant', content: 'Hi there! I am your AI Learning Assistant. How can I help you with your learning journey today?' }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
   const messagesEndRef = useRef(null);
+  const scrollTimerRef = useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -20,6 +22,22 @@ const Chatbot = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Auto-hide chat toggle on scroll, show after 1.5s idle
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!isOpen) {
+        setIsVisible(false);
+        if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+        scrollTimerRef.current = setTimeout(() => setIsVisible(true), 1500);
+      }
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+    };
+  }, [isOpen]);
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -102,14 +120,14 @@ const Chatbot = () => {
           <div className="chatbot-input-area">
             <input 
               type="text" 
-              placeholder="Ask about music, roadmaps..." 
+              placeholder="Ask about courses, learning paths..." 
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
               disabled={isLoading}
             />
             <button onClick={handleSend} disabled={isLoading || !input.trim()}>
-              <Send size={18} />
+              <Send size={16} />
             </button>
           </div>
         </div>
@@ -117,8 +135,11 @@ const Chatbot = () => {
 
       {/* Floating Toggle Button */}
       {!isOpen && (
-        <button className="chatbot-toggle-btn" onClick={() => setIsOpen(true)}>
-          <MessageCircle size={24} />
+        <button
+          className={`chatbot-toggle-btn ${isVisible ? '' : 'chatbot-hidden'}`}
+          onClick={() => setIsOpen(true)}
+        >
+          <MessageCircle size={20} />
         </button>
       )}
     </div>

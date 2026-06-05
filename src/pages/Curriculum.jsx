@@ -6,6 +6,7 @@ import Reveal from '../components/Reveal';
 import useMagnetic from '../hooks/useMagnetic';
 import { buildCourseArtwork } from '../utils/courseArt';
 import SuccessModal from '../components/SuccessModal';
+import { formatCategoryLabel } from '../utils/category';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -199,7 +200,7 @@ const Curriculum = () => {
             <div className="header-aside">
               <div className="summary-tile">
                 <span>Category</span>
-                <strong style={{ textTransform: 'capitalize' }}>{course.category}</strong>
+                <strong>{formatCategoryLabel(course.category)}</strong>
               </div>
               <div className="summary-tile">
                 <span>Difficulty</span>

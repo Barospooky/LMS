@@ -1,3 +1,5 @@
+import { normalizeCategorySlug } from './category';
+
 const categoryImages = {
   development: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800',
   management: 'https://images.unsplash.com/photo-1507207611509-ec012433ff52?w=800',
@@ -7,5 +9,5 @@ const categoryImages = {
 };
 
 export const buildCourseArtwork = (course) => {
-  return categoryImages[course?.category?.toLowerCase()] || categoryImages.default;
+  return categoryImages[normalizeCategorySlug(course?.category)] || categoryImages.default;
 };

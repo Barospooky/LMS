@@ -3,7 +3,6 @@ import Home from './pages/Home'
 import Dashboard from './pages/Dashboard'
 import Course from './pages/Course'
 import Curriculum from './pages/Curriculum'
-import CustomCursor from './components/CustomCursor'
 import ProtectedRoute from './components/ProtectedRoute'
 import AdminRoute from './components/AdminRoute'
 import AdminLayout from './pages/admin/AdminLayout'
@@ -16,7 +15,6 @@ import './App.css'
 function App() {
   return (
     <Router>
-      <CustomCursor />
       <Routes>
         <Route path="/" element={<Home />} />
         

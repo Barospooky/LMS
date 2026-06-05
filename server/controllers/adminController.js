@@ -35,6 +35,41 @@ export const getStatsOverview = async (req, res) => {
       GROUP BY category
     `);
 
+    const revenueTrend = await pool.query(`
+      SELECT
+        TO_CHAR(DATE_TRUNC('month', created_at), 'Mon') AS month_label,
+        DATE_TRUNC('month', created_at) AS month_start,
+        COALESCE(SUM(amount), 0) AS revenue
+      FROM payments
+      WHERE status = 'paid'
+        AND created_at >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '5 months'
+      GROUP BY DATE_TRUNC('month', created_at)
+      ORDER BY month_start ASC
+    `);
+
+    const enrollmentTrend = await pool.query(`
+      SELECT
+        TO_CHAR(DATE_TRUNC('month', purchased_at), 'Mon') AS month_label,
+        DATE_TRUNC('month', purchased_at) AS month_start,
+        COUNT(*) AS enrollments
+      FROM user_courses
+      WHERE purchased_at >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '5 months'
+      GROUP BY DATE_TRUNC('month', purchased_at)
+      ORDER BY month_start ASC
+    `);
+
+    const topCourses = await pool.query(`
+      SELECT
+        c.id,
+        c.title,
+        COUNT(uc.course_id) AS enrollments
+      FROM courses c
+      LEFT JOIN user_courses uc ON uc.course_id = c.id
+      GROUP BY c.id, c.title
+      ORDER BY enrollments DESC, c.title ASC
+      LIMIT 5
+    `);
+
     res.json({
       stats: {
         totalCourses: parseInt(coursesCount.rows[0].count, 10),
@@ -44,7 +79,10 @@ export const getStatsOverview = async (req, res) => {
       },
       recentUsers: recentUsers.rows,
       recentEnrollments: recentEnrollments.rows,
-      categoryDistribution: categoryDistribution.rows
+      categoryDistribution: categoryDistribution.rows,
+      revenueTrend: revenueTrend.rows,
+      enrollmentTrend: enrollmentTrend.rows,
+      topCourses: topCourses.rows
     });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching stats overview', error: error.message });
