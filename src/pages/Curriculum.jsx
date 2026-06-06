@@ -7,8 +7,7 @@ import useMagnetic from '../hooks/useMagnetic';
 import { buildCourseArtwork } from '../utils/courseArt';
 import SuccessModal from '../components/SuccessModal';
 import { formatCategoryLabel } from '../utils/category';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+import { apiFetch } from '../utils/apiClient';
 
 const loadRazorpayScript = () =>
   new Promise((resolve) => {
@@ -45,11 +44,7 @@ const Curriculum = () => {
 
   const fetchCourseDetails = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/courses/${id}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
+      const response = await apiFetch(`/api/courses/${id}`);
       const data = await response.json();
       if (response.ok) {
         setCourse(data);
@@ -70,19 +65,18 @@ const Curriculum = () => {
         return;
       }
 
-      const response = await fetch(`${API_URL}/api/payments/create-order`, {
+      const response = await apiFetch('/api/payments/create-order', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ courseId: id }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        alert(data.message || 'Unable to start payment');
+        const details = data.error ? `${typeof data.error === 'string' ? data.error : JSON.stringify(data.error)}` : '';
+        const hint = data.hint ? `\nHint: ${data.hint}` : '';
+        alert(`${data.message || 'Unable to start payment'}${details ? `: ${details}` : ''}${hint}`);
         return;
       }
 
@@ -97,12 +91,9 @@ const Curriculum = () => {
         order_id: data.razorpayOrderId,
         handler: async (paymentResult) => {
           try {
-            const verifyResponse = await fetch(`${API_URL}/api/payments/verify`, {
+            const verifyResponse = await apiFetch('/api/payments/verify', {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${localStorage.getItem('token')}`,
-              },
+              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 orderId: data.orderId,
                 ...paymentResult,
@@ -112,7 +103,9 @@ const Curriculum = () => {
             const verifyData = await verifyResponse.json();
 
             if (!verifyResponse.ok) {
-              alert(verifyData.message || 'Payment verification failed');
+              const details = verifyData.error ? `${typeof verifyData.error === 'string' ? verifyData.error : JSON.stringify(verifyData.error)}` : '';
+              const hint = verifyData.hint ? `\nHint: ${verifyData.hint}` : '';
+              alert(`${verifyData.message || 'Payment verification failed'}${details ? `: ${details}` : ''}${hint}`);
               return;
             }
 

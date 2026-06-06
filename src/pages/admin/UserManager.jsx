@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Reveal from '../../components/Reveal';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+import { apiFetch } from '../../utils/apiClient';
 
 const UserManager = () => {
   const [users, setUsers] = useState([]);
@@ -16,11 +15,7 @@ const UserManager = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/admin/users`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
+      const response = await apiFetch('/api/admin/users');
       const data = await response.json();
       if (response.ok) {
         setUsers(data);
@@ -38,12 +33,9 @@ const UserManager = () => {
   const handleRoleChange = async (userId, newRole) => {
     setUpdatingId(userId);
     try {
-      const response = await fetch(`${API_URL}/api/admin/users/${userId}/role`, {
+      const response = await apiFetch(`/api/admin/users/${userId}/role`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: newRole }),
       });
       const data = await response.json();

@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS courses (
   price DECIMAL(10, 2) DEFAULT 0.00,
   category VARCHAR(100),
   difficulty VARCHAR(20) DEFAULT 'beginner',
-  thumbnail VARCHAR(255),
+  thumbnail TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS lessons (
   id SERIAL PRIMARY KEY,
   course_id INT NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
   title VARCHAR(255) NOT NULL,
-  video_url VARCHAR(255) NOT NULL,
+  video_url TEXT NOT NULL,
   lesson_order INT NOT NULL
 );
 

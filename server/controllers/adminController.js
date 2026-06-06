@@ -1,4 +1,14 @@
 import pool from '../config/db.js';
+import path from 'path';
+
+const toPublicUploadUrl = (req, filePath) => {
+  if (!filePath) return '';
+
+  const normalized = filePath.replace(/\\/g, '/');
+  const uploadsIndex = normalized.indexOf('uploads/');
+  const relativePath = uploadsIndex >= 0 ? normalized.slice(uploadsIndex + 'uploads/'.length) : path.basename(normalized);
+  return `${req.protocol}://${req.get('host')}/uploads/${relativePath}`;
+};
 
 // Stats Overview
 export const getStatsOverview = async (req, res) => {
@@ -128,13 +138,15 @@ export const updateUserRole = async (req, res) => {
 // Course CRUD
 export const createCourse = async (req, res) => {
   const { title, description, price, category, difficulty, thumbnail } = req.body;
+  const uploadedThumbnail = req.file ? toPublicUploadUrl(req, req.file.path) : '';
+  const thumbnailValue = uploadedThumbnail || thumbnail || '';
 
   try {
     const result = await pool.query(
       `INSERT INTO courses (title, description, price, category, difficulty, thumbnail)
        VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
-      [title, description, price || 0.00, category || 'general', difficulty || 'beginner', thumbnail || '']
+      [title, description, price || 0.00, category || 'general', difficulty || 'beginner', thumbnailValue]
     );
 
     res.status(201).json(result.rows[0]);
@@ -146,6 +158,8 @@ export const createCourse = async (req, res) => {
 export const updateCourse = async (req, res) => {
   const { id } = req.params;
   const { title, description, price, category, difficulty, thumbnail } = req.body;
+  const uploadedThumbnail = req.file ? toPublicUploadUrl(req, req.file.path) : '';
+  const thumbnailValue = uploadedThumbnail || thumbnail || '';
 
   try {
     const result = await pool.query(
@@ -153,7 +167,7 @@ export const updateCourse = async (req, res) => {
        SET title = $1, description = $2, price = $3, category = $4, difficulty = $5, thumbnail = $6
        WHERE id = $7
        RETURNING *`,
-      [title, description, price || 0.00, category || 'general', difficulty || 'beginner', thumbnail || '', id]
+      [title, description, price || 0.00, category || 'general', difficulty || 'beginner', thumbnailValue, id]
     );
 
     if (result.rows.length === 0) {
@@ -196,13 +210,15 @@ export const deleteCourse = async (req, res) => {
 export const addLesson = async (req, res) => {
   const { courseId } = req.params;
   const { title, video_url, lesson_order, transcript } = req.body;
+  const uploadedVideo = req.file ? toPublicUploadUrl(req, req.file.path) : '';
+  const videoValue = uploadedVideo || video_url || '';
 
   try {
     const result = await pool.query(
       `INSERT INTO lessons (course_id, title, video_url, lesson_order, transcript)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING *`,
-      [courseId, title, video_url, lesson_order || 1, transcript || '']
+      [courseId, title, videoValue, lesson_order || 1, transcript || '']
     );
 
     res.status(201).json(result.rows[0]);
@@ -214,6 +230,8 @@ export const addLesson = async (req, res) => {
 export const updateLesson = async (req, res) => {
   const { lessonId } = req.params;
   const { title, video_url, lesson_order, transcript } = req.body;
+  const uploadedVideo = req.file ? toPublicUploadUrl(req, req.file.path) : '';
+  const videoValue = uploadedVideo || video_url || '';
 
   try {
     const result = await pool.query(
@@ -221,7 +239,7 @@ export const updateLesson = async (req, res) => {
        SET title = $1, video_url = $2, lesson_order = $3, transcript = $4
        WHERE id = $5
        RETURNING *`,
-      [title, video_url, lesson_order, transcript, lessonId]
+      [title, videoValue, lesson_order, transcript, lessonId]
     );
 
     if (result.rows.length === 0) {

@@ -12,6 +12,7 @@ import {
 } from '../controllers/adminController.js';
 import auth from '../middleware/authMiddleware.js';
 import { requireRole } from '../middleware/roleMiddleware.js';
+import { courseUpload, lessonUpload } from '../middleware/uploadMiddleware.js';
 
 const router = express.Router();
 
@@ -27,13 +28,13 @@ router.get('/users', getUsers);
 router.put('/users/:id/role', updateUserRole);
 
 // Course CRUD
-router.post('/courses', createCourse);
-router.put('/courses/:id', updateCourse);
+router.post('/courses', courseUpload.single('thumbnail_file'), createCourse);
+router.put('/courses/:id', courseUpload.single('thumbnail_file'), updateCourse);
 router.delete('/courses/:id', deleteCourse);
 
 // Lesson CRUD under a course
-router.post('/courses/:courseId/lessons', addLesson);
-router.put('/lessons/:lessonId', updateLesson);
+router.post('/courses/:courseId/lessons', lessonUpload.single('video_file'), addLesson);
+router.put('/lessons/:lessonId', lessonUpload.single('video_file'), updateLesson);
 router.delete('/lessons/:lessonId', deleteLesson);
 
 export default router;

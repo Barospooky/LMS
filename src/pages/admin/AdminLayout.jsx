@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, BookOpen, Users, LogOut, ArrowLeft } from 'lucide-react';
 import './admin.css';
+import { apiFetch } from '../../utils/apiClient';
 
 const AdminLayout = () => {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ const AdminLayout = () => {
   }, []);
 
   const handleLogout = () => {
+    apiFetch('/api/auth/logout', { method: 'POST' }, { retryOn401: false }).catch(() => {});
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     navigate('/');

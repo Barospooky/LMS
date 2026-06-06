@@ -2,8 +2,8 @@ import crypto from 'crypto';
 import pool from '../config/db.js';
 
 const getRazorpayAuthHeader = () => {
-  const keyId = process.env.RAZORPAY_KEY_ID;
-  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  const keyId = process.env.RAZORPAY_KEY_ID?.trim();
+  const keySecret = process.env.RAZORPAY_KEY_SECRET?.trim();
 
   if (!keyId || !keySecret) {
     return null;
@@ -43,33 +43,55 @@ export const createOrder = async (req, res) => {
     }
 
     const amountInPaise = Math.round(Number(course.price) * 100);
+    if (!Number.isFinite(amountInPaise) || amountInPaise <= 0) {
+      return res.status(400).json({
+        message: 'Invalid course price. Razorpay orders require a positive amount.',
+      });
+    }
+
     const receipt = `course_${courseId}_user_${userId}_${Date.now()}`;
+    let razorpayResponse;
+    let razorpayOrder;
 
-    const razorpayResponse = await fetch('https://api.razorpay.com/v1/orders', {
-      method: 'POST',
-      headers: {
-        Authorization: authHeader,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        amount: amountInPaise,
-        currency: 'INR',
-        receipt,
-        notes: {
-          courseId: String(courseId),
-          userId: String(userId),
-          courseTitle: course.title,
+    try {
+      razorpayResponse = await fetch('https://api.razorpay.com/v1/orders', {
+        method: 'POST',
+        headers: {
+          Authorization: authHeader,
+          'Content-Type': 'application/json',
         },
-      }),
-    });
+        body: JSON.stringify({
+          amount: amountInPaise,
+          currency: 'INR',
+          receipt,
+          notes: {
+            courseId: String(courseId),
+            userId: String(userId),
+            courseTitle: course.title,
+          },
+        }),
+      });
 
-    const razorpayOrder = await razorpayResponse.json();
+      razorpayOrder = await razorpayResponse.json();
+    } catch (networkError) {
+      console.error('Razorpay network error:', networkError);
+      return res.status(502).json({
+        message: 'Unable to reach Razorpay',
+        error: networkError.message,
+      });
+    }
 
     if (!razorpayResponse.ok) {
       console.error('Razorpay Order Error:', razorpayOrder);
-      return res.status(500).json({
-        message: 'Failed to create Razorpay order',
-        error: razorpayOrder?.error?.description || razorpayOrder,
+      const statusCode = razorpayResponse.status === 401 ? 401 : 500;
+      return res.status(statusCode).json({
+        message: razorpayResponse.status === 401
+          ? 'Razorpay authentication failed'
+          : 'Failed to create Razorpay order',
+        error: razorpayOrder?.error?.description || razorpayOrder?.error?.reason || razorpayOrder?.error?.field || razorpayOrder,
+        hint: razorpayResponse.status === 401
+          ? 'Check that RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET are a matching pair from the same Razorpay account and same mode (test vs live).'
+          : undefined,
       });
     }
 
@@ -118,7 +140,7 @@ export const verifyPayment = async (req, res) => {
     }
 
     const expectedSignature = crypto
-      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET?.trim())
       .update(`${razorpayOrderId}|${razorpayPaymentId}`)
       .digest('hex');
 

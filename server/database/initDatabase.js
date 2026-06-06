@@ -89,7 +89,15 @@ export const initDatabase = async () => {
     } catch (e) { /* ignore */ }
 
     try {
+      await pool.query("ALTER TABLE courses ALTER COLUMN thumbnail TYPE TEXT");
+    } catch (e) { /* ignore */ }
+
+    try {
       await pool.query("ALTER TABLE courses ADD COLUMN IF NOT EXISTS difficulty VARCHAR(20) DEFAULT 'beginner'");
+    } catch (e) { /* ignore */ }
+
+    try {
+      await pool.query("ALTER TABLE lessons ALTER COLUMN video_url TYPE TEXT");
     } catch (e) { /* ignore */ }
 
     try {

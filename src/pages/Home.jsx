@@ -42,8 +42,8 @@ import Reveal from '../components/Reveal';
 import useMagnetic from '../hooks/useMagnetic';
 import { buildCourseArtwork } from '../utils/courseArt';
 import { formatCategoryLabel } from '../utils/category';
+import API_URL, { apiFetch } from '../utils/apiClient';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const GOOGLE_SCRIPT_ID = 'google-identity-services';
 
@@ -338,16 +338,15 @@ const Home = () => {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/auth/login`, {
+      const response = await apiFetch('/api/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(loginData),
-      });
+      }, { retryOn401: false });
 
       const data = await response.json();
 
       if (response.ok) {
-        localStorage.setItem('token', data.token);
+        localStorage.removeItem('token');
         localStorage.setItem('user', JSON.stringify(data.user));
         setShowAuthModal(false);
         navigate('/dashboard');
@@ -394,16 +393,15 @@ const Home = () => {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/auth/signup`, {
+      const response = await apiFetch('/api/auth/signup', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(signupData),
-      });
+      }, { retryOn401: false });
 
       const data = await response.json();
 
       if (response.ok) {
-        localStorage.setItem('token', data.token);
+        localStorage.removeItem('token');
         localStorage.setItem('user', JSON.stringify(data.user));
         setShowAuthModal(false);
         navigate('/dashboard');
@@ -422,16 +420,15 @@ const Home = () => {
     setError('');
 
     try {
-      const apiResponse = await fetch(`${API_URL}/api/auth/google`, {
+      const apiResponse = await apiFetch('/api/auth/google', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ credential: response.credential }),
-      });
+      }, { retryOn401: false });
 
       const data = await apiResponse.json();
 
       if (apiResponse.ok) {
-        localStorage.setItem('token', data.token);
+        localStorage.removeItem('token');
         localStorage.setItem('user', JSON.stringify(data.user));
         setShowAuthModal(false);
         navigate('/dashboard');

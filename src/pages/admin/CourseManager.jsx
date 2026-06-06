@@ -1,9 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Plus, Edit3, Trash2, BookOpen, Layers, Video, Search } from 'lucide-react';
+import { Plus, Edit3, Trash2, BookOpen, Layers, Video, Search, Upload, Link2, Image, Film } from 'lucide-react';
 import Reveal from '../../components/Reveal';
 import { formatCategoryLabel, formatInrCurrency, getCategoryOptions } from '../../utils/category';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+import API_URL, { apiFetch } from '../../utils/apiClient';
 
 const emptyCourseForm = {
   title: '',
@@ -31,11 +30,17 @@ const CourseManager = () => {
   const [showCourseForm, setShowCourseForm] = useState(false);
   const [isEditingCourse, setIsEditingCourse] = useState(false);
   const [courseFormData, setCourseFormData] = useState(emptyCourseForm);
+  const [courseThumbnailMode, setCourseThumbnailMode] = useState('url');
+  const [courseThumbnailFile, setCourseThumbnailFile] = useState(null);
+  const [courseThumbnailPreview, setCourseThumbnailPreview] = useState('');
 
   const [showLessonForm, setShowLessonForm] = useState(false);
   const [isEditingLesson, setIsEditingLesson] = useState(false);
   const [editingLessonId, setEditingLessonId] = useState(null);
   const [lessonFormData, setLessonFormData] = useState(emptyLessonForm);
+  const [lessonVideoMode, setLessonVideoMode] = useState('url');
+  const [lessonVideoFile, setLessonVideoFile] = useState(null);
+  const [lessonVideoPreview, setLessonVideoPreview] = useState('');
 
   const [pendingDelete, setPendingDelete] = useState(null);
 
@@ -43,13 +48,20 @@ const CourseManager = () => {
     fetchCourses();
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (courseThumbnailPreview?.startsWith('blob:')) {
+        URL.revokeObjectURL(courseThumbnailPreview);
+      }
+      if (lessonVideoPreview?.startsWith('blob:')) {
+        URL.revokeObjectURL(lessonVideoPreview);
+      }
+    };
+  }, [courseThumbnailPreview, lessonVideoPreview]);
+
   const fetchCourses = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/courses`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
+      const response = await apiFetch('/api/courses');
       const responseData = await response.json();
       if (response.ok) {
         setCourses(responseData);
@@ -66,11 +78,7 @@ const CourseManager = () => {
 
   const fetchCourseDetails = async (courseId) => {
     try {
-      const response = await fetch(`${API_URL}/api/courses/${courseId}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
+      const response = await apiFetch(`/api/courses/${courseId}`);
       const responseData = await response.json();
       if (response.ok) {
         setSelectedCourse(responseData);
@@ -105,12 +113,36 @@ const CourseManager = () => {
   const resetCourseForm = () => {
     setIsEditingCourse(false);
     setCourseFormData(emptyCourseForm);
+    setCourseThumbnailMode('url');
+    setCourseThumbnailFile(null);
+    setCourseThumbnailPreview('');
   };
 
   const resetLessonForm = () => {
     setIsEditingLesson(false);
     setEditingLessonId(null);
     setLessonFormData(emptyLessonForm);
+    setLessonVideoMode('url');
+    setLessonVideoFile(null);
+    setLessonVideoPreview('');
+  };
+
+  const handleCourseThumbnailChange = (event) => {
+    const file = event.target.files?.[0] || null;
+    setCourseThumbnailFile(file);
+    if (courseThumbnailPreview?.startsWith('blob:')) {
+      URL.revokeObjectURL(courseThumbnailPreview);
+    }
+    setCourseThumbnailPreview(file ? URL.createObjectURL(file) : '');
+  };
+
+  const handleLessonVideoChange = (event) => {
+    const file = event.target.files?.[0] || null;
+    setLessonVideoFile(file);
+    if (lessonVideoPreview?.startsWith('blob:')) {
+      URL.revokeObjectURL(lessonVideoPreview);
+    }
+    setLessonVideoPreview(file ? URL.createObjectURL(file) : '');
   };
 
   const handleSelectCourse = (course) => {
@@ -121,17 +153,36 @@ const CourseManager = () => {
     event.preventDefault();
     const method = isEditingCourse ? 'PUT' : 'POST';
     const endpoint = isEditingCourse
-      ? `${API_URL}/api/admin/courses/${courseFormData.id}`
-      : `${API_URL}/api/admin/courses`;
+      ? `/api/admin/courses/${courseFormData.id}`
+      : '/api/admin/courses';
+    const useMultipart = courseThumbnailMode === 'upload';
+
+    if (useMultipart && !courseThumbnailFile) {
+      alert('Please choose a thumbnail image or switch back to URL mode.');
+      return;
+    }
 
     try {
-      const response = await fetch(endpoint, {
+      const payload = useMultipart ? new FormData() : JSON.stringify(courseFormData);
+      if (useMultipart) {
+        Object.entries(courseFormData).forEach(([key, value]) => {
+          if (key === 'thumbnail') return;
+          payload.append(key, value ?? '');
+        });
+        if (!courseThumbnailFile && courseFormData.thumbnail) {
+          payload.append('thumbnail', courseFormData.thumbnail);
+        }
+        if (courseThumbnailFile) {
+          payload.append('thumbnail_file', courseThumbnailFile);
+        }
+      }
+
+      const response = await apiFetch(endpoint, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify(courseFormData),
+        headers: useMultipart
+          ? {}
+          : { 'Content-Type': 'application/json' },
+        body: payload,
       });
 
       const responseData = await response.json();
@@ -170,11 +221,8 @@ const CourseManager = () => {
       : `${API_URL}/api/admin/lessons/${pendingDelete.id}`;
 
     try {
-      const response = await fetch(endpoint, {
+      const response = await apiFetch(endpoint.replace(API_URL, ''), {
         method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
       });
 
       const responseData = await response.json();
@@ -210,6 +258,9 @@ const CourseManager = () => {
       difficulty: course.difficulty || 'beginner',
       thumbnail: course.thumbnail || '',
     });
+    setCourseThumbnailMode('url');
+    setCourseThumbnailFile(null);
+    setCourseThumbnailPreview(course.thumbnail || '');
     setShowCourseForm(true);
   };
 
@@ -217,17 +268,36 @@ const CourseManager = () => {
     event.preventDefault();
     const method = isEditingLesson ? 'PUT' : 'POST';
     const endpoint = isEditingLesson
-      ? `${API_URL}/api/admin/lessons/${editingLessonId}`
-      : `${API_URL}/api/admin/courses/${selectedCourse.id}/lessons`;
+      ? `/api/admin/lessons/${editingLessonId}`
+      : `/api/admin/courses/${selectedCourse.id}/lessons`;
+    const useMultipart = lessonVideoMode === 'upload';
+
+    if (useMultipart && !lessonVideoFile) {
+      alert('Please choose a lesson video file or switch back to YouTube/link mode.');
+      return;
+    }
 
     try {
-      const response = await fetch(endpoint, {
+      const payload = useMultipart ? new FormData() : JSON.stringify(lessonFormData);
+      if (useMultipart) {
+        Object.entries(lessonFormData).forEach(([key, value]) => {
+          if (key === 'video_url') return;
+          payload.append(key, value ?? '');
+        });
+        if (!lessonVideoFile && lessonFormData.video_url) {
+          payload.append('video_url', lessonFormData.video_url);
+        }
+        if (lessonVideoFile) {
+          payload.append('video_file', lessonVideoFile);
+        }
+      }
+
+      const response = await apiFetch(endpoint, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify(lessonFormData),
+        headers: useMultipart
+          ? {}
+          : { 'Content-Type': 'application/json' },
+        body: payload,
       });
 
       const responseData = await response.json();
@@ -254,6 +324,9 @@ const CourseManager = () => {
       lesson_order: lesson.lesson_order,
       transcript: lesson.transcript || '',
     });
+    setLessonVideoMode('url');
+    setLessonVideoFile(null);
+    setLessonVideoPreview(lesson.video_url || '');
     setShowLessonForm(true);
   };
 
@@ -516,13 +589,68 @@ const CourseManager = () => {
                   </select>
                 </div>
                 <div className="admin-form-group">
-                  <label>Thumbnail URL</label>
-                  <input
-                    type="text"
-                    value={courseFormData.thumbnail}
-                    onChange={(event) => setCourseFormData({ ...courseFormData, thumbnail: event.target.value })}
-                    className="admin-input"
-                  />
+                  <label>Thumbnail Source</label>
+                  <div className="source-toggle">
+                    <button
+                      type="button"
+                      className={`source-toggle-btn ${courseThumbnailMode === 'url' ? 'active' : ''}`}
+                      onClick={() => {
+                        setCourseThumbnailMode('url');
+                        setCourseThumbnailFile(null);
+                        setCourseThumbnailPreview(courseFormData.thumbnail || '');
+                      }}
+                    >
+                      <Link2 size={14} /> Paste URL
+                    </button>
+                    <button
+                      type="button"
+                      className={`source-toggle-btn ${courseThumbnailMode === 'upload' ? 'active' : ''}`}
+                      onClick={() => {
+                        setCourseThumbnailMode('upload');
+                        setCourseFormData({ ...courseFormData, thumbnail: courseFormData.thumbnail || '' });
+                      }}
+                    >
+                      <Upload size={14} /> Upload from PC
+                    </button>
+                  </div>
+
+                  {courseThumbnailMode === 'url' ? (
+                    <input
+                      type="text"
+                      placeholder="https://..."
+                      value={courseFormData.thumbnail}
+                      onChange={(event) => {
+                        setCourseFormData({ ...courseFormData, thumbnail: event.target.value });
+                        setCourseThumbnailPreview(event.target.value);
+                        setCourseThumbnailFile(null);
+                      }}
+                      className="admin-input"
+                    />
+                  ) : (
+                    <input
+                      type="file"
+                      accept="image/*"
+                      required={courseThumbnailMode === 'upload'}
+                      onChange={handleCourseThumbnailChange}
+                      className="admin-input"
+                    />
+                  )}
+
+                  {(courseThumbnailPreview || courseFormData.thumbnail) && (
+                    <div className="source-preview">
+                      <img
+                        src={courseThumbnailPreview || courseFormData.thumbnail}
+                        alt="Thumbnail preview"
+                        className="source-preview-image"
+                        onError={(event) => {
+                          event.currentTarget.style.display = 'none';
+                        }}
+                      />
+                      <span className="source-preview-label">
+                        {courseThumbnailFile ? courseThumbnailFile.name : 'Current thumbnail preview'}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -555,14 +683,64 @@ const CourseManager = () => {
 
               <div className="admin-grid-lesson">
                 <div className="admin-form-group">
-                  <label>Video URL (YouTube)</label>
-                  <input
-                    type="url"
-                    required
-                    value={lessonFormData.video_url}
-                    onChange={(event) => setLessonFormData({ ...lessonFormData, video_url: event.target.value })}
-                    className="admin-input"
-                  />
+                  <label>Video Source</label>
+                  <div className="source-toggle">
+                    <button
+                      type="button"
+                      className={`source-toggle-btn ${lessonVideoMode === 'url' ? 'active' : ''}`}
+                      onClick={() => {
+                        setLessonVideoMode('url');
+                        setLessonVideoFile(null);
+                        setLessonVideoPreview(lessonFormData.video_url || '');
+                      }}
+                    >
+                      <Link2 size={14} /> YouTube / Link
+                    </button>
+                    <button
+                      type="button"
+                      className={`source-toggle-btn ${lessonVideoMode === 'upload' ? 'active' : ''}`}
+                      onClick={() => {
+                        setLessonVideoMode('upload');
+                      }}
+                    >
+                      <Upload size={14} /> Upload Video
+                    </button>
+                  </div>
+
+                  {lessonVideoMode === 'url' ? (
+                    <input
+                      type="url"
+                      required
+                      placeholder="https://www.youtube.com/watch?v=..."
+                      value={lessonFormData.video_url}
+                      onChange={(event) => {
+                        setLessonFormData({ ...lessonFormData, video_url: event.target.value });
+                        setLessonVideoPreview(event.target.value);
+                        setLessonVideoFile(null);
+                      }}
+                      className="admin-input"
+                    />
+                  ) : (
+                    <input
+                      type="file"
+                      accept="video/*"
+                      required={lessonVideoMode === 'upload'}
+                      onChange={handleLessonVideoChange}
+                      className="admin-input"
+                    />
+                  )}
+
+                  {(lessonVideoPreview || lessonFormData.video_url) && (
+                    <div className="source-preview source-preview-compact">
+                      <div className="source-preview-icon">
+                        <Film size={14} />
+                      </div>
+                      <div className="source-preview-copy">
+                        <strong>{lessonVideoFile ? lessonVideoFile.name : 'Video source ready'}</strong>
+                        <span>{lessonVideoFile ? 'Uploaded file will be stored and served from the server.' : 'YouTube links load directly and quickly.'}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="admin-form-group">
                   <label>Order No.</label>

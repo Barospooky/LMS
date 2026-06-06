@@ -1,20 +1,49 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
+import API_URL from '../utils/apiClient';
 
 const AdminRoute = ({ children }) => {
-  const token = localStorage.getItem('token');
-  const userStr = localStorage.getItem('user');
-  let user = null;
+  const [status, setStatus] = useState('checking');
 
-  try {
-    if (userStr) {
-      user = JSON.parse(userStr);
-    }
-  } catch (e) {
-    console.error('Error parsing user from localStorage', e);
+  useEffect(() => {
+    let cancelled = false;
+
+    const verifySession = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/auth/me`, {
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          if (!cancelled) setStatus('blocked');
+          return;
+        }
+
+        const data = await response.json();
+        const isAdmin = data?.user?.role === 'admin';
+
+        if (!cancelled) {
+          setStatus(isAdmin ? 'ok' : 'blocked');
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setStatus('blocked');
+        }
+      }
+    };
+
+    verifySession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (status === 'checking') {
+    return null;
   }
 
-  if (!token || !user || user.role !== 'admin') {
+  if (status === 'blocked') {
     return <Navigate to="/dashboard" replace />;
   }
 

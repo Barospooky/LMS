@@ -7,8 +7,7 @@ import Reveal from '../components/Reveal';
 import useMagnetic from '../hooks/useMagnetic';
 import YouTubeLessonPlayer from '../components/YouTubeLessonPlayer';
 import { formatCategoryLabel } from '../utils/category';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+import API_URL, { apiFetch } from '../utils/apiClient';
 
 /**
  * Autocorrelation algorithm for robust real-time pitch detection.
@@ -434,12 +433,9 @@ const Course = () => {
 
       // Call Express/Gemini voice analyzer API
       setIsAnalyzingVoice(true);
-      const response = await fetch(`${API_URL}/api/ai/voice/analyze`, {
+      const response = await apiFetch('/api/ai/voice/analyze', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           taskType: 'sing_note',
           expectedNote: questionItem.expected_pitch || 'C4',
@@ -687,11 +683,7 @@ const Course = () => {
 
   const fetchCourseDetails = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/courses/${courseId}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
+      const response = await apiFetch(`/api/courses/${courseId}`);
       const data = await response.json();
       if (response.ok) {
         setCourse(data);
@@ -704,11 +696,7 @@ const Course = () => {
 
   const fetchDbProgress = async (courseData) => {
     try {
-      const response = await fetch(`${API_URL}/api/courses/progress/${courseId}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
+      const response = await apiFetch(`/api/courses/progress/${courseId}`);
       const data = await response.json();
       if (response.ok && data.completedLessons) {
         const local = getStoredProgress(courseId);
@@ -781,11 +769,7 @@ const Course = () => {
       const url = shouldRegenerate 
         ? `${API_URL}/api/courses/quiz/${selectedLessonId}?regenerate=true`
         : `${API_URL}/api/courses/quiz/${selectedLessonId}`;
-      const response = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
+      const response = await apiFetch(url.replace(API_URL, ''));
       if (response.ok) {
         const data = await response.json();
         if (data && data.length > 0) {
@@ -865,12 +849,9 @@ const Course = () => {
       setCourseProgress(nextState);
 
       // Save to database as well
-      fetch(`${API_URL}/api/courses/progress`, {
+      apiFetch('/api/courses/progress', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ courseId: Number(courseId), lessonId: Number(currentLesson.id) })
       }).catch(err => console.error("Error saving progress to DB:", err));
     }

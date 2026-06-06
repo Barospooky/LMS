@@ -2,44 +2,81 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import pool from '../config/db.js';
 
-const createToken = (id, role) => jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: '1h' });
+const ACCESS_TOKEN_EXPIRY = '15m';
+const REFRESH_TOKEN_EXPIRY = '7d';
+const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || `${process.env.JWT_SECRET || 'dev_refresh'}_refresh`;
+
+const createAccessToken = (id, role) =>
+  jwt.sign({ id, role, tokenType: 'access' }, JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRY });
+
+const createRefreshToken = (id, role) =>
+  jwt.sign({ id, role, tokenType: 'refresh' }, JWT_REFRESH_SECRET, { expiresIn: REFRESH_TOKEN_EXPIRY });
+
+const authCookieOptions = {
+  httpOnly: true,
+  sameSite: 'lax',
+  secure: process.env.NODE_ENV === 'production',
+  path: '/',
+};
+
+const setAuthCookies = (res, accessToken, refreshToken) => {
+  res.cookie('accessToken', accessToken, {
+    ...authCookieOptions,
+    maxAge: 15 * 60 * 1000,
+  });
+
+  res.cookie('refreshToken', refreshToken, {
+    ...authCookieOptions,
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+};
+
+const clearAuthCookies = (res) => {
+  res.clearCookie('accessToken', authCookieOptions);
+  res.clearCookie('refreshToken', authCookieOptions);
+};
 
 const buildUserResponse = (user) => ({
   id: user.id,
   firstName: user.first_name ?? user.firstname,
   lastName: user.last_name ?? user.lastname,
   email: user.email,
-  role: user.role
+  role: user.role,
 });
+
+const findUserById = async (userId) => {
+  const userRes = await pool.query(
+    'SELECT id, first_name, last_name, email, role FROM users WHERE id = $1',
+    [userId]
+  );
+  return userRes.rows[0] || null;
+};
 
 export const signup = async (req, res) => {
   const { firstName, lastName, email, password } = req.body;
 
   try {
-    // Check if user exists
     const existingUser = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
     if (existingUser.rows.length > 0) {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Insert user
     const result = await pool.query(
       'INSERT INTO users (first_name, last_name, email, password_hash) VALUES ($1, $2, $3, $4) RETURNING id, role',
       [firstName, lastName, email, hashedPassword]
     );
 
     const { id: userId, role } = result.rows[0];
-
-    // Create token
-    const token = createToken(userId, role);
+    const accessToken = createAccessToken(userId, role);
+    const refreshToken = createRefreshToken(userId, role);
+    setAuthCookies(res, accessToken, refreshToken);
 
     res.status(201).json({
-      token,
-      user: { id: userId, firstName, lastName, email, role }
+      user: { id: userId, firstName, lastName, email, role },
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error during signup', error: error.message });
@@ -50,15 +87,12 @@ export const login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // Find user
     const users = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
     if (users.rows.length === 0) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
     const user = users.rows[0];
-
-    // Check password
     const normalizedPassword = user.password_hash ?? user.password;
     if (!normalizedPassword) {
       return res.status(400).json({ message: 'This account uses Google sign-in. Continue with Google instead.' });
@@ -69,11 +103,12 @@ export const login = async (req, res) => {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    const token = createToken(user.id, user.role);
+    const accessToken = createAccessToken(user.id, user.role);
+    const refreshToken = createRefreshToken(user.id, user.role);
+    setAuthCookies(res, accessToken, refreshToken);
 
     res.json({
-      token,
-      user: buildUserResponse(user)
+      user: buildUserResponse(user),
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error during login', error: error.message });
@@ -130,13 +165,60 @@ export const googleLogin = async (req, res) => {
       user = result.rows[0];
     }
 
-    const token = createToken(user.id, user.role);
+    const accessToken = createAccessToken(user.id, user.role);
+    const refreshToken = createRefreshToken(user.id, user.role);
+    setAuthCookies(res, accessToken, refreshToken);
 
     res.json({
-      token,
       user: buildUserResponse(user),
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error during Google login', error: error.message });
   }
+};
+
+export const refreshSession = async (req, res) => {
+  const refreshToken = req.cookies?.refreshToken;
+
+  if (!refreshToken) {
+    return res.status(401).json({ message: 'No refresh token found' });
+  }
+
+  try {
+    const decoded = jwt.verify(refreshToken, JWT_REFRESH_SECRET);
+    const user = await findUserById(decoded.id);
+
+    if (!user) {
+      clearAuthCookies(res);
+      return res.status(401).json({ message: 'User not found' });
+    }
+
+    const accessToken = createAccessToken(user.id, user.role);
+    const nextRefreshToken = createRefreshToken(user.id, user.role);
+    setAuthCookies(res, accessToken, nextRefreshToken);
+
+    res.json({ user: buildUserResponse(user) });
+  } catch (error) {
+    clearAuthCookies(res);
+    res.status(401).json({ message: 'Refresh token is not valid' });
+  }
+};
+
+export const getCurrentUser = async (req, res) => {
+  try {
+    const user = await findUserById(req.user?.id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({ user: buildUserResponse(user) });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching current user', error: error.message });
+  }
+};
+
+export const logout = async (req, res) => {
+  clearAuthCookies(res);
+  res.json({ message: 'Logged out successfully' });
 };

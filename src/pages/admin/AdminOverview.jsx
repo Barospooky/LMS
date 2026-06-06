@@ -10,8 +10,7 @@ import {
 } from 'lucide-react';
 import Reveal from '../../components/Reveal';
 import { formatCategoryLabel, formatInrCurrency } from '../../utils/category';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+import { apiFetch } from '../../utils/apiClient';
 
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -76,11 +75,7 @@ const AdminOverview = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/admin/overview`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
+      const response = await apiFetch('/api/admin/overview');
       const responseData = await response.json();
       if (response.ok) {
         setData(responseData);
