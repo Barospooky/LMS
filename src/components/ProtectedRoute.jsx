@@ -1,41 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Navigate } from 'react-router-dom';
-import API_URL from '../utils/apiClient';
+import useAuth from '../hooks/useAuth';
 
 const ProtectedRoute = ({ children }) => {
-  const [status, setStatus] = useState('checking');
+  const { isLoading, isAuthenticated } = useAuth();
 
-  useEffect(() => {
-    let cancelled = false;
-
-    const verifySession = async () => {
-      try {
-        const response = await fetch(`${API_URL}/api/auth/me`, {
-          credentials: 'include',
-        });
-
-        if (!cancelled) {
-          setStatus(response.ok ? 'ok' : 'blocked');
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setStatus('blocked');
-        }
-      }
-    };
-
-    verifySession();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  if (status === 'checking') {
+  if (isLoading) {
     return null;
   }
 
-  if (status === 'blocked') {
+  if (!isAuthenticated) {
     return <Navigate to="/" replace />;
   }
 

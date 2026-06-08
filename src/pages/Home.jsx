@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import {
   Sparkles, GraduationCap, PlayCircle, BookOpen, Layers,
   ShieldCheck, Award, Star, Compass, Users, Brain, BadgeCheck,
@@ -40,9 +41,10 @@ import '../styles/auth.css';
 import '../styles/dashboard.css';
 import Reveal from '../components/Reveal';
 import useMagnetic from '../hooks/useMagnetic';
+import useAuth from '../hooks/useAuth';
 import { buildCourseArtwork } from '../utils/courseArt';
 import { formatCategoryLabel } from '../utils/category';
-import API_URL, { apiFetch } from '../utils/apiClient';
+import API_URL from '../utils/apiClient';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const GOOGLE_SCRIPT_ID = 'google-identity-services';
@@ -98,6 +100,7 @@ const FAQ_DATA = [
 
 const Home = () => {
   const navigate = useNavigate();
+  const { login, signup, googleLogin } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authTab, setAuthTab] = useState('login');
   const [error, setError] = useState('');
@@ -105,7 +108,6 @@ const Home = () => {
   const [googleReady, setGoogleReady] = useState(false);
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [signupData, setSignupData] = useState({ firstName: '', lastName: '', email: '', password: '' });
-  const [landingCourses, setLandingCourses] = useState([]);
   const [openFaq, setOpenFaq] = useState(null);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
@@ -119,21 +121,19 @@ const Home = () => {
     setError('Google sign-in could not load. Check your internet connection or browser settings.');
   };
 
-  useEffect(() => {
-    fetchPublicCourses();
-  }, []);
-
-  const fetchPublicCourses = async () => {
-    try {
+  const landingCoursesQuery = useQuery({
+    queryKey: ['landing-courses'],
+    queryFn: async () => {
       const response = await fetch(`${API_URL}/api/courses/landing`);
       const data = await response.json();
-      if (response.ok) {
-        setLandingCourses(data);
+      if (!response.ok) {
+        throw new Error(data.message || 'Error fetching public courses');
       }
-    } catch (err) {
-      console.error('Error fetching public courses:', err);
-    }
-  };
+      return data;
+    },
+  });
+
+  const landingCourses = landingCoursesQuery.data || [];
 
   useEffect(() => {
     if (!GOOGLE_CLIENT_ID) return undefined;
@@ -338,25 +338,13 @@ const Home = () => {
     setLoading(true);
 
     try {
-      const response = await apiFetch('/api/auth/login', {
-        method: 'POST',
-        body: JSON.stringify(loginData),
-      }, { retryOn401: false });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        localStorage.removeItem('token');
-        localStorage.setItem('user', JSON.stringify(data.user));
-        setShowAuthModal(false);
-        if (data.user.role === 'admin') navigate('/admin/overview');
-        else if (data.user.role === 'instructor') navigate('/instructor/overview');
-        else navigate('/dashboard');
-      } else {
-        setError(data.message || 'Login failed');
-      }
+      const user = await login(loginData);
+      setShowAuthModal(false);
+      if (user.role === 'admin') navigate('/admin/overview');
+      else if (user.role === 'instructor') navigate('/instructor/overview');
+      else navigate('/dashboard');
     } catch (err) {
-      setError('Connection to server failed');
+      setError(err.message || 'Connection to server failed');
     } finally {
       setLoading(false);
     }
@@ -395,25 +383,13 @@ const Home = () => {
     setLoading(true);
 
     try {
-      const response = await apiFetch('/api/auth/signup', {
-        method: 'POST',
-        body: JSON.stringify(signupData),
-      }, { retryOn401: false });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        localStorage.removeItem('token');
-        localStorage.setItem('user', JSON.stringify(data.user));
-        setShowAuthModal(false);
-        if (data.user.role === 'admin') navigate('/admin/overview');
-        else if (data.user.role === 'instructor') navigate('/instructor/overview');
-        else navigate('/dashboard');
-      } else {
-        setError(data.message || 'Signup failed');
-      }
+      const user = await signup(signupData);
+      setShowAuthModal(false);
+      if (user.role === 'admin') navigate('/admin/overview');
+      else if (user.role === 'instructor') navigate('/instructor/overview');
+      else navigate('/dashboard');
     } catch (err) {
-      setError('Connection to server failed');
+      setError(err.message || 'Connection to server failed');
     } finally {
       setLoading(false);
     }
@@ -424,25 +400,13 @@ const Home = () => {
     setError('');
 
     try {
-      const apiResponse = await apiFetch('/api/auth/google', {
-        method: 'POST',
-        body: JSON.stringify({ credential: response.credential }),
-      }, { retryOn401: false });
-
-      const data = await apiResponse.json();
-
-      if (apiResponse.ok) {
-        localStorage.removeItem('token');
-        localStorage.setItem('user', JSON.stringify(data.user));
-        setShowAuthModal(false);
-        if (data.user.role === 'admin') navigate('/admin/overview');
-        else if (data.user.role === 'instructor') navigate('/instructor/overview');
-        else navigate('/dashboard');
-      } else {
-        setError(data.message || 'Google login failed');
-      }
+      const user = await googleLogin(response.credential);
+      setShowAuthModal(false);
+      if (user.role === 'admin') navigate('/admin/overview');
+      else if (user.role === 'instructor') navigate('/instructor/overview');
+      else navigate('/dashboard');
     } catch (err) {
-      setError('Google login failed');
+      setError(err.message || 'Google login failed');
     } finally {
       setLoading(false);
     }

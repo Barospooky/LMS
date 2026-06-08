@@ -1,62 +1,63 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Reveal from '../../components/Reveal';
+import useAuth from '../../hooks/useAuth';
 import { apiFetch } from '../../utils/apiClient';
 
 const UserManager = () => {
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [updatingId, setUpdatingId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const { user, setUser } = useAuth();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  const fetchUsers = async () => {
-    try {
+  const usersQuery = useQuery({
+    queryKey: ['admin-users'],
+    queryFn: async () => {
       const response = await apiFetch('/api/admin/users');
       const data = await response.json();
-      if (response.ok) {
-        setUsers(data);
-      } else {
-        setError(data.message || 'Failed to fetch users');
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch users');
       }
-    } catch (err) {
-      console.error(err);
-      setError('Connection to server failed');
-    } finally {
-      setLoading(false);
-    }
-  };
+      return data;
+    },
+    enabled: Boolean(user),
+  });
 
-  const handleRoleChange = async (userId, newRole) => {
-    setUpdatingId(userId);
-    try {
+  const roleMutation = useMutation({
+    mutationFn: async ({ userId, newRole }) => {
       const response = await apiFetch(`/api/admin/users/${userId}/role`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: newRole }),
       });
       const data = await response.json();
-      if (response.ok) {
-        setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
-        
-        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
-        if (storedUser.id === userId) {
-          storedUser.role = newRole;
-          localStorage.setItem('user', JSON.stringify(storedUser));
-        }
-      } else {
-        alert(data.message || 'Failed to update user role');
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to update user role');
       }
-    } catch (err) {
-      console.error(err);
-      alert('Error updating user role');
-    } finally {
+      return { userId, newRole, data };
+    },
+    onMutate: ({ userId }) => {
+      setUpdatingId(userId);
+    },
+    onSuccess: async ({ userId, newRole }) => {
+      await queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      if (user?.id === userId) {
+        setUser({ ...user, role: newRole });
+      }
+    },
+    onError: (err) => {
+      alert(err.message || 'Error updating user role');
+    },
+    onSettled: () => {
       setUpdatingId(null);
-    }
+    },
+  });
+
+  const handleRoleChange = async (userId, newRole) => {
+    roleMutation.mutate({ userId, newRole });
   };
+
+  const users = usersQuery.data || [];
 
   const filteredUsers = users.filter(u => {
     const fullName = `${u.first_name} ${u.last_name}`.toLowerCase();
@@ -65,8 +66,8 @@ const UserManager = () => {
     return fullName.includes(query) || email.includes(query) || u.role.includes(query);
   });
 
-  if (loading) return <div>Loading users...</div>;
-  if (error) return <div style={{ color: 'var(--danger)', padding: '20px' }}>{error}</div>;
+  if (usersQuery.isLoading) return <div>Loading users...</div>;
+  if (usersQuery.isError) return <div style={{ color: 'var(--danger)', padding: '20px' }}>{usersQuery.error?.message || 'Error loading users'}</div>;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>

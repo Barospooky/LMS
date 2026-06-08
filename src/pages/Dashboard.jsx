@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import {
   Award,
   BarChart3,
@@ -23,6 +24,7 @@ import '../styles/dashboard.css';
 import Reveal from '../components/Reveal';
 import StudentSidebar from '../components/StudentSidebar';
 import useMagnetic from '../hooks/useMagnetic';
+import useAuth from '../hooks/useAuth';
 import { buildCourseArtwork } from '../utils/courseArt';
 import { formatCategoryLabel, getCategoryOptions } from '../utils/category';
 import API_URL, { apiFetch } from '../utils/apiClient';
@@ -49,9 +51,7 @@ const buildSeries = (base, factors, min = 12, max = 96) =>
 const Dashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [user, setUser] = useState(null);
-  const [courses, setCourses] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { user, clearAuth } = useAuth();
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedDifficulty, setSelectedDifficulty] = useState('');
@@ -64,38 +64,29 @@ const Dashboard = () => {
   const libraryRef = useRef(null);
   const resourcesRef = useRef(null);
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    fetchCourses();
-  }, []);
-
-  const fetchCourses = async (searchTerm = '', cat = '', diff = '') => {
-    try {
+  const coursesQuery = useQuery({
+    queryKey: ['courses', search, selectedCategory, selectedDifficulty],
+    queryFn: async () => {
       let url = `${API_URL}/api/courses`;
       const queryParams = [];
-      if (searchTerm) queryParams.push(`search=${encodeURIComponent(searchTerm)}`);
-      if (cat) queryParams.push(`category=${encodeURIComponent(cat)}`);
-      if (diff) queryParams.push(`difficulty=${encodeURIComponent(diff)}`);
+      if (search) queryParams.push(`search=${encodeURIComponent(search)}`);
+      if (selectedCategory) queryParams.push(`category=${encodeURIComponent(selectedCategory)}`);
+      if (selectedDifficulty) queryParams.push(`difficulty=${encodeURIComponent(selectedDifficulty)}`);
       if (queryParams.length > 0) url += `?${queryParams.join('&')}`;
 
       const response = await apiFetch(url.replace(API_URL, ''));
       const data = await response.json();
-      if (response.ok) setCourses(data);
-    } catch (error) {
-      console.error('Error fetching courses:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      if (!response.ok) {
+        throw new Error(data.message || 'Error fetching courses');
+      }
+      return data;
+    },
+  });
+
+  const courses = coursesQuery.data || [];
 
   const handleLogout = () => {
-    apiFetch('/api/auth/logout', { method: 'POST' }, { retryOn401: false }).catch(() => {});
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    navigate('/');
+    clearAuth().finally(() => navigate('/'));
   };
 
   const scrollToSection = (ref, navKey) => {
@@ -107,7 +98,6 @@ const Dashboard = () => {
     setSearch('');
     setSelectedCategory('');
     setSelectedDifficulty('');
-    fetchCourses('', '', '');
   };
 
   const hasActiveFilters = search || selectedCategory || selectedDifficulty;
@@ -575,7 +565,7 @@ const Dashboard = () => {
             </div>
           </Reveal>
 
-          {loading ? (
+          {coursesQuery.isLoading ? (
             <div className="courses-loading">
               <div className="loading-pulse"></div>
               <div className="loading-pulse"></div>

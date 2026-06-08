@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { jsPDF } from 'jspdf';
 import '../styles/main.css';
 import '../styles/course.css';
 import Reveal from '../components/Reveal';
 import useMagnetic from '../hooks/useMagnetic';
+import useAuth from '../hooks/useAuth';
 import YouTubeLessonPlayer from '../components/YouTubeLessonPlayer';
 import { formatCategoryLabel } from '../utils/category';
 import API_URL, { apiFetch } from '../utils/apiClient';
@@ -148,6 +149,7 @@ const Course = () => {
   const [score, setScore] = useState(0);
   const [activeTab, setActiveTab] = useState('overview');
   const [courseProgress, setCourseProgress] = useState(getStoredProgress(courseId));
+  const [certificateStatus, setCertificateStatus] = useState({ earned: false, certificate: null });
   const [showCertificate, setShowCertificate] = useState(false);
   const [isDownloadingCertificate, setIsDownloadingCertificate] = useState(false);
   const [cleanedSignatureUrl, setCleanedSignatureUrl] = useState(null);
@@ -639,10 +641,7 @@ const Course = () => {
     setActiveTab('quiz');
   }, []);
 
-  const user = useMemo(() => {
-    const raw = localStorage.getItem('user');
-    return raw ? JSON.parse(raw) : null;
-  }, []);
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchCourseDetails();
@@ -688,6 +687,7 @@ const Course = () => {
       if (response.ok) {
         setCourse(data);
         fetchDbProgress(data);
+        fetchCertificateStatus();
       }
     } catch (error) {
       console.error('Error fetching course details:', error);
@@ -704,13 +704,41 @@ const Course = () => {
         const nextState = {
           ...local,
           completedLessons: mergedCompleted,
-          certificateEarned: courseData ? mergedCompleted.length === courseData.lessons.length : local.certificateEarned
+          certificateEarned: Boolean(data.certificateEarned)
         };
         localStorage.setItem(`course_progress_${courseId}`, JSON.stringify(nextState));
         setCourseProgress(nextState);
+        if (data.certificate) {
+          setCertificateStatus({ earned: true, certificate: data.certificate });
+        }
       }
     } catch (e) {
       console.error("Error fetching db progress", e);
+    }
+  };
+
+  const fetchCertificateStatus = async () => {
+    try {
+      const response = await apiFetch(`/api/courses/certificates/${courseId}`);
+      const data = await response.json();
+      if (response.ok) {
+        setCertificateStatus({
+          earned: Boolean(data.earned),
+          certificate: data.certificate || null,
+        });
+
+        if (data.earned) {
+          const local = getStoredProgress(courseId);
+          const nextState = {
+            ...local,
+            certificateEarned: true,
+          };
+          localStorage.setItem(`course_progress_${courseId}`, JSON.stringify(nextState));
+          setCourseProgress(nextState);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching certificate status:', error);
     }
   };
 
@@ -808,7 +836,7 @@ const Course = () => {
     setSelectedAnswers((prev) => ({ ...prev, [quizId]: answer }));
   };
 
-  const handleQuizSubmit = () => {
+  const handleQuizSubmit = async () => {
     let newScore = 0;
     quiz.forEach((item) => {
       if (item.type === 'text' || item.type === 'mcq') {
@@ -848,12 +876,41 @@ const Course = () => {
       localStorage.setItem(`course_progress_${courseId}`, JSON.stringify(nextState));
       setCourseProgress(nextState);
 
-      // Save to database as well
-      apiFetch('/api/courses/progress', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ courseId: Number(courseId), lessonId: Number(currentLesson.id) })
-      }).catch(err => console.error("Error saving progress to DB:", err));
+      const totalQuestions = quiz.length;
+
+      try {
+        const response = await apiFetch('/api/courses/assessments/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            courseId: Number(courseId),
+            lessonId: Number(currentLesson.id),
+            score: newScore,
+            totalQuestions,
+            responses: selectedAnswers,
+          }),
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+          if (data.certificateEarned) {
+            setCertificateStatus({ earned: true, certificate: data.certificate || null });
+          }
+
+          const syncedProgress = {
+            ...nextState,
+            certificateEarned: Boolean(data.certificateEarned),
+          };
+          localStorage.setItem(`course_progress_${courseId}`, JSON.stringify(syncedProgress));
+          setCourseProgress(syncedProgress);
+
+          await fetchCertificateStatus();
+        } else {
+          console.error('Assessment submission failed:', data.message || 'Unknown error');
+        }
+      } catch (err) {
+        console.error('Error submitting assessment:', err);
+      }
     }
   };
 
@@ -878,7 +935,7 @@ const Course = () => {
   const isCurrentLessonComplete = courseProgress.completedLessons.includes(currentLesson.id);
   const canAccessQuiz = videoCompleted || isCurrentLessonComplete;
   const isFinalLesson = course.lessons[course.lessons.length - 1]?.id === currentLesson.id;
-  const shouldShowCertificateBlock = courseProgress.certificateEarned;
+  const shouldShowCertificateBlock = courseProgress.certificateEarned || certificateStatus.earned;
 
   return (
     <div className="course-page">
@@ -1486,6 +1543,11 @@ const Course = () => {
                     <p className="cert-course-label">has successfully completed the course</p>
                     <div className="cert-course">{course.title}</div>
                     <p className="cert-detail">including all lesson videos and their related quiz modules.</p>
+                    {certificateStatus.certificate?.certificate_number && (
+                      <p className="cert-detail" style={{ marginTop: '12px', fontSize: '13px', letterSpacing: '0.08em' }}>
+                        Certificate No. {certificateStatus.certificate.certificate_number}
+                      </p>
+                    )}
                   </div>
                   <div className="cert-footer">
                     <div className="cert-sig" style={{ position: 'relative' }}>

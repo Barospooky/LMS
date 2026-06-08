@@ -4,8 +4,9 @@ import pool from '../config/db.js';
 
 const ACCESS_TOKEN_EXPIRY = '15m';
 const REFRESH_TOKEN_EXPIRY = '7d';
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET = process.env.JWT_SECRET || 'dev_access_secret';
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || `${process.env.JWT_SECRET || 'dev_refresh'}_refresh`;
+const BCRYPT_ROUNDS = Number(process.env.BCRYPT_ROUNDS) || 12;
 
 const createAccessToken = (id, role) =>
   jwt.sign({ id, role, tokenType: 'access' }, JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRY });
@@ -43,11 +44,15 @@ const buildUserResponse = (user) => ({
   lastName: user.last_name ?? user.lastname,
   email: user.email,
   role: user.role,
+  authProvider: user.auth_provider,
+  phone: user.phone ?? null,
+  bio: user.bio ?? '',
+  preferences: user.preferences || {},
 });
 
 const findUserById = async (userId) => {
   const userRes = await pool.query(
-    'SELECT id, first_name, last_name, email, role FROM users WHERE id = $1',
+    'SELECT id, first_name, last_name, email, role, auth_provider, phone, bio, preferences FROM users WHERE id = $1',
     [userId]
   );
   return userRes.rows[0] || null;
@@ -62,21 +67,32 @@ export const signup = async (req, res) => {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    const salt = await bcrypt.genSalt(10);
+    const salt = await bcrypt.genSalt(BCRYPT_ROUNDS);
     const hashedPassword = await bcrypt.hash(password, salt);
 
     const result = await pool.query(
-      'INSERT INTO users (first_name, last_name, email, password_hash) VALUES ($1, $2, $3, $4) RETURNING id, role',
+      'INSERT INTO users (first_name, last_name, email, password_hash) VALUES ($1, $2, $3, $4) RETURNING id, role, auth_provider, phone, bio, preferences',
       [firstName, lastName, email, hashedPassword]
     );
 
-    const { id: userId, role } = result.rows[0];
+    const createdUser = result.rows[0];
+    const { id: userId, role } = createdUser;
     const accessToken = createAccessToken(userId, role);
     const refreshToken = createRefreshToken(userId, role);
     setAuthCookies(res, accessToken, refreshToken);
 
     res.status(201).json({
-      user: { id: userId, firstName, lastName, email, role },
+      user: buildUserResponse({
+        id: userId,
+        first_name: firstName,
+        last_name: lastName,
+        email,
+        role,
+        auth_provider: 'local',
+        phone: null,
+        bio: '',
+        preferences: {},
+      }),
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error during signup', error: error.message });
@@ -215,6 +231,69 @@ export const getCurrentUser = async (req, res) => {
     res.json({ user: buildUserResponse(user) });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching current user', error: error.message });
+  }
+};
+
+export const updateCurrentUser = async (req, res) => {
+  const userId = req.user?.id;
+  const {
+    firstName,
+    lastName,
+    email,
+    phone,
+    bio,
+    preferences = {},
+  } = req.body || {};
+
+  if (!userId) {
+    return res.status(401).json({ message: 'Not authenticated' });
+  }
+
+  try {
+    const currentUserRes = await pool.query(
+      'SELECT id, email, auth_provider FROM users WHERE id = $1',
+      [userId]
+    );
+
+    if (currentUserRes.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const currentUser = currentUserRes.rows[0];
+    const normalizedEmail = String(email || '').trim();
+
+    if (normalizedEmail && normalizedEmail.toLowerCase() !== currentUser.email.toLowerCase()) {
+      const duplicate = await pool.query('SELECT id FROM users WHERE email = $1 AND id <> $2', [normalizedEmail, userId]);
+      if (duplicate.rows.length > 0) {
+        return res.status(400).json({ message: 'Email already in use' });
+      }
+    }
+
+    const updatedUser = await pool.query(
+      `UPDATE users
+       SET first_name = COALESCE(NULLIF($1, ''), first_name),
+           last_name = COALESCE(NULLIF($2, ''), last_name),
+           email = COALESCE(NULLIF($3, ''), email),
+           phone = $4,
+           bio = $5,
+           preferences = $6::jsonb,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $7
+       RETURNING id, first_name, last_name, email, role, auth_provider, phone, bio, preferences`,
+      [
+        firstName ?? '',
+        lastName ?? '',
+        normalizedEmail || null,
+        phone ?? null,
+        bio ?? '',
+        JSON.stringify(preferences || {}),
+        userId,
+      ]
+    );
+
+    res.json({ user: buildUserResponse(updatedUser.rows[0]) });
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating current user', error: error.message });
   }
 };
 

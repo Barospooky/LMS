@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import {
   BookOpen,
   DollarSign,
@@ -13,6 +14,7 @@ import {
   Settings
 } from 'lucide-react';
 import Reveal from '../../components/Reveal';
+import useAuth from '../../hooks/useAuth';
 import { formatCategoryLabel, formatInrCurrency } from '../../utils/category';
 import { apiFetch } from '../../utils/apiClient';
 
@@ -70,35 +72,22 @@ const buildPolylinePoints = (values, width = 320, height = 120, padding = 14) =>
 
 const AdminOverview = () => {
   const navigate = useNavigate();
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [user, setUser] = useState(null);
+  const { user } = useAuth();
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    fetchStats();
-  }, []);
-
-  const fetchStats = async () => {
-    try {
+  const overviewQuery = useQuery({
+    queryKey: ['admin-overview', user?.role],
+    queryFn: async () => {
       const response = await apiFetch('/api/admin/overview');
       const responseData = await response.json();
-      if (response.ok) {
-        setData(responseData);
-      } else {
-        setError(responseData.message || 'Failed to fetch overview stats');
+      if (!response.ok) {
+        throw new Error(responseData.message || 'Failed to fetch overview stats');
       }
-    } catch (fetchError) {
-      console.error(fetchError);
-      setError('Connection to server failed');
-    } finally {
-      setLoading(false);
-    }
-  };
+      return responseData;
+    },
+    enabled: Boolean(user),
+  });
+
+  const data = overviewQuery.data;
 
   const revenueTrend = useMemo(
     () => normalizeTrend(data?.revenueTrend, 'revenue'),
@@ -118,8 +107,8 @@ const AdminOverview = () => {
     [data?.topCourses],
   );
 
-  if (loading) return <div>Loading statistics...</div>;
-  if (error) return <div style={{ color: 'var(--danger)', padding: '20px' }}>{error}</div>;
+  if (overviewQuery.isLoading) return <div>Loading statistics...</div>;
+  if (overviewQuery.isError) return <div style={{ color: 'var(--danger)', padding: '20px' }}>{overviewQuery.error?.message || 'Error loading overview'}</div>;
 
   const { stats, recentUsers, recentEnrollments, categoryDistribution } = data || {};
   const totalRevenueSum = revenueTrend.reduce((sum, item) => sum + item.value, 0);

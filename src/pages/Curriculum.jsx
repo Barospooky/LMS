@@ -16,6 +16,7 @@ import '../styles/dashboard.css';
 import Reveal from '../components/Reveal';
 import StudentSidebar from '../components/StudentSidebar';
 import useMagnetic from '../hooks/useMagnetic';
+import useAuth from '../hooks/useAuth';
 import { buildCourseArtwork } from '../utils/courseArt';
 import SuccessModal from '../components/SuccessModal';
 import { formatCategoryLabel } from '../utils/category';
@@ -38,19 +39,15 @@ const loadRazorpayScript = () =>
 const Curriculum = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { user, clearAuth } = useAuth();
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [user, setUser] = useState(null);
   const btnBack = useMagnetic();
   const btnPurchase = useMagnetic();
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
     fetchCourseDetails();
   }, [id]);
 
@@ -69,10 +66,7 @@ const Curriculum = () => {
   };
 
   const handleLogout = () => {
-    apiFetch('/api/auth/logout', { method: 'POST' }, { retryOn401: false }).catch(() => {});
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    navigate('/');
+    clearAuth().finally(() => navigate('/'));
   };
 
   const navigateToDashboardSection = (scrollTo) => {
@@ -166,8 +160,6 @@ const Curriculum = () => {
         alert(`${data.message || 'Unable to start payment'}${details ? `: ${details}` : ''}${hint}`);
         return;
       }
-
-      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
 
       const options = {
         key: data.key,

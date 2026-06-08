@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   BarChart3,
   BookOpenCheck,
@@ -15,11 +16,13 @@ import '../styles/main.css';
 import '../styles/dashboard.css';
 import Reveal from '../components/Reveal';
 import StudentSidebar from '../components/StudentSidebar';
+import useAuth from '../hooks/useAuth';
 import { apiFetch } from '../utils/apiClient';
 
 const Settings = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
+  const queryClient = useQueryClient();
+  const { user, clearAuth, updateProfile } = useAuth();
   const [message, setMessage] = useState('');
   const [form, setForm] = useState({
     firstName: '',
@@ -32,29 +35,49 @@ const Settings = () => {
     productNews: false,
   });
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (!storedUser) return;
+  const profileQuery = useQuery({
+    queryKey: ['auth', 'me'],
+    queryFn: async () => {
+      const response = await apiFetch('/api/auth/me');
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to load profile');
+      }
+      return data.user;
+    },
+  });
 
-    const parsedUser = JSON.parse(storedUser);
-    setUser(parsedUser);
+  const saveProfileMutation = useMutation({
+    mutationFn: updateProfile,
+    onSuccess: async (updatedUser) => {
+      await queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
+      await queryClient.setQueryData(['auth', 'me'], updatedUser);
+      setMessage('Profile saved successfully.');
+    },
+    onError: (error) => {
+      setMessage(error.message || 'Failed to save profile.');
+    },
+  });
+
+  const profile = profileQuery.data || user;
+
+  useEffect(() => {
+    if (!profile) return;
+
     setForm({
-      firstName: parsedUser.firstName || '',
-      lastName: parsedUser.lastName || '',
-      email: parsedUser.email || '',
-      phone: parsedUser.phone || '',
-      bio: parsedUser.bio || '',
-      emailUpdates: parsedUser.preferences?.emailUpdates ?? true,
-      courseReminders: parsedUser.preferences?.courseReminders ?? true,
-      productNews: parsedUser.preferences?.productNews ?? false,
+      firstName: profile.firstName || '',
+      lastName: profile.lastName || '',
+      email: profile.email || '',
+      phone: profile.phone || '',
+      bio: profile.bio || '',
+      emailUpdates: profile.preferences?.emailUpdates ?? true,
+      courseReminders: profile.preferences?.courseReminders ?? true,
+      productNews: profile.preferences?.productNews ?? false,
     });
-  }, []);
+  }, [profile]);
 
   const handleLogout = () => {
-    apiFetch('/api/auth/logout', { method: 'POST' }, { retryOn401: false }).catch(() => {});
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    navigate('/');
+    clearAuth().finally(() => navigate('/'));
   };
 
   const handleChange = (field, value) => {
@@ -63,11 +86,10 @@ const Settings = () => {
   };
 
   const handleSave = () => {
-    const updatedUser = {
-      ...user,
-      firstName: form.firstName.trim() || user?.firstName || 'User',
-      lastName: form.lastName.trim() || user?.lastName || '',
-      email: form.email.trim() || user?.email || '',
+    saveProfileMutation.mutate({
+      firstName: form.firstName.trim() || profile?.firstName || 'User',
+      lastName: form.lastName.trim() || profile?.lastName || '',
+      email: form.email.trim() || profile?.email || '',
       phone: form.phone.trim(),
       bio: form.bio.trim(),
       preferences: {
@@ -75,25 +97,21 @@ const Settings = () => {
         courseReminders: form.courseReminders,
         productNews: form.productNews,
       },
-    };
-
-    setUser(updatedUser);
-    localStorage.setItem('user', JSON.stringify(updatedUser));
-    setMessage('Profile and preferences saved on this device.');
+    });
   };
 
   const handleReset = () => {
-    if (!user) return;
+    if (!profile) return;
 
     setForm({
-      firstName: user.firstName || '',
-      lastName: user.lastName || '',
-      email: user.email || '',
-      phone: user.phone || '',
-      bio: user.bio || '',
-      emailUpdates: user.preferences?.emailUpdates ?? true,
-      courseReminders: user.preferences?.courseReminders ?? true,
-      productNews: user.preferences?.productNews ?? false,
+      firstName: profile.firstName || '',
+      lastName: profile.lastName || '',
+      email: profile.email || '',
+      phone: profile.phone || '',
+      bio: profile.bio || '',
+      emailUpdates: profile.preferences?.emailUpdates ?? true,
+      courseReminders: profile.preferences?.courseReminders ?? true,
+      productNews: profile.preferences?.productNews ?? false,
     });
     setMessage('Changes reset to your saved profile.');
   };
@@ -164,9 +182,9 @@ const Settings = () => {
 
   return (
     <div className="dashboard-page">
-      <StudentSidebar
-        user={user}
-        title={user ? `${user.firstName}'s studio` : 'My study'}
+        <StudentSidebar
+        user={profile}
+        title={profile ? `${profile.firstName}'s studio` : 'My study'}
         navItems={navItems}
       />
 
@@ -191,7 +209,7 @@ const Settings = () => {
                     <h3 className="text-serif">Edit your account details</h3>
                   </div>
                   <div className="settings-avatar-large">
-                    {form.firstName?.charAt(0) || user?.firstName?.charAt(0) || 'U'}
+                    {form.firstName?.charAt(0) || profile?.firstName?.charAt(0) || 'U'}
                   </div>
                 </div>
 
@@ -255,14 +273,14 @@ const Settings = () => {
 
                 <div className="settings-meta-card">
                   <strong>What this saves</strong>
-                  <p>These values update the current user in browser storage so the sidebar and dashboard can reflect your profile immediately.</p>
+                  <p>These values update your profile on the server, so the sidebar, dashboard, and account screen stay in sync everywhere you sign in.</p>
                 </div>
 
                 {message && <div className="settings-status">{message}</div>}
 
                 <div className="settings-actions">
-                  <button type="button" className="btn-primary" onClick={handleSave}>
-                    Save Changes
+                  <button type="button" className="btn-primary" onClick={handleSave} disabled={saveProfileMutation.isPending || profileQuery.isLoading}>
+                    {saveProfileMutation.isPending ? 'Saving...' : 'Save Changes'}
                   </button>
                   <button type="button" className="btn-outline" onClick={handleReset}>
                     Reset

@@ -1,25 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, BookOpen, Users, LogOut, ArrowLeft } from 'lucide-react';
 import './admin.css';
-import { apiFetch } from '../../utils/apiClient';
+import useAuth from '../../hooks/useAuth';
 
 const AdminLayout = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-  }, []);
+  const { user, clearAuth } = useAuth();
 
   const handleLogout = () => {
-    apiFetch('/api/auth/logout', { method: 'POST' }, { retryOn401: false }).catch(() => {});
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    navigate('/');
+    clearAuth().finally(() => navigate('/'));
   };
 
   return (

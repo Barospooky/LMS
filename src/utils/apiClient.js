@@ -55,6 +55,7 @@ export const apiFetch = async (path, options = {}, { retryOn401 = true } = {}) =
 export const clearStoredUser = () => {
   localStorage.removeItem('user');
   localStorage.removeItem('token');
+  window.dispatchEvent(new Event('auth:session-expired'));
 };
 
 export default API_URL;

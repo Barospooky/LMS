@@ -13,10 +13,25 @@ import { initDatabase } from './database/initDatabase.js';
 dotenv.config();
 
 const app = express();
+const defaultAllowedOrigins = new Set(
+  [
+    process.env.FRONTEND_URL,
+    process.env.CLIENT_URL,
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+  ].filter(Boolean)
+);
 
 // Middleware
 app.use(cors({
-  origin: true,
+  origin(origin, callback) {
+    if (!origin || defaultAllowedOrigins.has(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error(`CORS blocked for origin ${origin}`));
+  },
   credentials: true,
 }));
 app.use(express.json());

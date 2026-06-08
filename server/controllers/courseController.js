@@ -3,6 +3,76 @@ import { getGeminiModel } from '../ai/config/geminiClient.js';
 import { generateAutomatedAssessment } from '../ai/services/quizEngineService.js';
 import fs from 'fs';
 
+const ensureLessonAssessment = async ({ courseId, lessonId, lessonTitle }) => {
+  const existing = await pool.query(
+    'SELECT * FROM assessments WHERE course_id = $1 AND lesson_id = $2 LIMIT 1',
+    [courseId, lessonId]
+  );
+
+  if (existing.rows.length > 0) {
+    return existing.rows[0];
+  }
+
+  const created = await pool.query(
+    `INSERT INTO assessments (course_id, lesson_id, title, assessment_type, passing_score, is_published)
+     VALUES ($1, $2, $3, 'lesson_quiz', 70, TRUE)
+     RETURNING *`,
+    [courseId, lessonId, `${lessonTitle} Assessment`]
+  );
+
+  return created.rows[0];
+};
+
+const getCourseCompletionStats = async (userId, courseId) => {
+  const totalLessonsRes = await pool.query('SELECT COUNT(*)::int AS total FROM lessons WHERE course_id = $1', [courseId]);
+  const completedLessonsRes = await pool.query(
+    'SELECT COUNT(*)::int AS total FROM user_progress WHERE user_id = $1 AND course_id = $2',
+    [userId, courseId]
+  );
+  const passedAssessmentsRes = await pool.query(
+    `SELECT COUNT(*)::int AS total
+     FROM assessment_submissions sub
+     JOIN assessments a ON a.id = sub.assessment_id
+     WHERE sub.user_id = $1
+       AND a.course_id = $2
+       AND sub.passed = TRUE`,
+    [userId, courseId]
+  );
+
+  return {
+    totalLessons: totalLessonsRes.rows[0]?.total || 0,
+    completedLessons: completedLessonsRes.rows[0]?.total || 0,
+    passedAssessments: passedAssessmentsRes.rows[0]?.total || 0,
+  };
+};
+
+const issueCertificateIfEligible = async ({ userId, courseId }) => {
+  const stats = await getCourseCompletionStats(userId, courseId);
+
+  if (!stats.totalLessons || stats.completedLessons < stats.totalLessons || stats.passedAssessments < stats.totalLessons) {
+    return null;
+  }
+
+  const existingCertificate = await pool.query(
+    'SELECT * FROM certificates WHERE user_id = $1 AND course_id = $2 LIMIT 1',
+    [userId, courseId]
+  );
+
+  if (existingCertificate.rows.length > 0) {
+    return existingCertificate.rows[0];
+  }
+
+  const certificateNumber = `AMP-${courseId}-${userId}-${Date.now()}`;
+  const certificate = await pool.query(
+    `INSERT INTO certificates (user_id, course_id, certificate_number, issued_at, verified_at, pdf_url)
+     VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL)
+     RETURNING *`,
+    [userId, courseId, certificateNumber]
+  );
+
+  return certificate.rows[0];
+};
+
 export const getCourses = async (req, res) => {
   const userId = req.user.id;
   const { search, category, difficulty, sort } = req.query;
@@ -120,7 +190,7 @@ export const getLessonQuiz = async (req, res) => {
 
     // 2. Fetch lesson and course context to get category, title, and video url
     const infoRes = await pool.query(`
-      SELECT l.title as lesson_title, l.video_url, c.category
+      SELECT l.id AS lesson_id, l.title as lesson_title, l.video_url, c.category, c.id AS course_id
       FROM lessons l
       JOIN courses c ON l.course_id = c.id
       WHERE l.id = $1
@@ -131,6 +201,11 @@ export const getLessonQuiz = async (req, res) => {
     }
 
     const lesson = infoRes.rows[0];
+    await ensureLessonAssessment({
+      courseId: lesson.course_id,
+      lessonId: lesson.lesson_id,
+      lessonTitle: lesson.lesson_title,
+    });
 
     // Clear old placeholder question only if it's the very first time (i.e. only 1 question exists in the DB)
     if (existingQuizzes.rows.length <= 1) {
@@ -194,6 +269,103 @@ export const saveUserProgress = async (req, res) => {
   }
 };
 
+export const submitLessonAssessment = async (req, res) => {
+  const { courseId, lessonId, score = 0, totalQuestions = 0, responses = [] } = req.body;
+  const userId = req.user.id;
+
+  if (!courseId || !lessonId) {
+    return res.status(400).json({ message: 'courseId and lessonId are required' });
+  }
+
+  try {
+    const lessonRes = await pool.query(
+      `SELECT l.id, l.title, l.course_id, c.title AS course_title
+       FROM lessons l
+       JOIN courses c ON c.id = l.course_id
+       WHERE l.id = $1 AND l.course_id = $2
+       LIMIT 1`,
+      [lessonId, courseId]
+    );
+
+    if (lessonRes.rows.length === 0) {
+      return res.status(404).json({ message: 'Lesson not found for this course' });
+    }
+
+    const lesson = lessonRes.rows[0];
+    const assessment = await ensureLessonAssessment({
+      courseId: lesson.course_id,
+      lessonId: lesson.id,
+      lessonTitle: lesson.title,
+    });
+
+    const passingScore = Number(assessment.passing_score || 70);
+    const normalizedScore = Number(score) || 0;
+    const normalizedTotal = Number(totalQuestions) || 0;
+    const passed = normalizedTotal > 0 ? (normalizedScore / normalizedTotal) * 100 >= passingScore : normalizedScore >= passingScore;
+
+    const submission = await pool.query(
+      `INSERT INTO assessment_submissions
+        (assessment_id, user_id, score, passed, total_questions, response_payload, submitted_at, graded_at)
+       VALUES ($1, $2, $3, $4, $5, $6::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+       ON CONFLICT (assessment_id, user_id)
+       DO UPDATE SET
+         score = EXCLUDED.score,
+         passed = EXCLUDED.passed,
+         total_questions = EXCLUDED.total_questions,
+         response_payload = EXCLUDED.response_payload,
+         submitted_at = CURRENT_TIMESTAMP,
+         graded_at = CURRENT_TIMESTAMP,
+         updated_at = CURRENT_TIMESTAMP
+       RETURNING *`,
+      [assessment.id, userId, normalizedScore, passed, normalizedTotal, JSON.stringify(responses)]
+    );
+
+    await pool.query(
+      `INSERT INTO user_progress (user_id, course_id, lesson_id)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (user_id, course_id, lesson_id) DO NOTHING`,
+      [userId, courseId, lessonId]
+    );
+
+    const completionStats = await getCourseCompletionStats(userId, courseId);
+    const certificate = await issueCertificateIfEligible({ userId, courseId });
+
+    res.json({
+      message: 'Assessment submitted successfully',
+      submission: submission.rows[0],
+      passed,
+      completion: completionStats,
+      certificateEarned: Boolean(certificate),
+      certificate: certificate || null,
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error submitting assessment', error: error.message });
+  }
+};
+
+export const getCertificateStatus = async (req, res) => {
+  const { courseId } = req.params;
+  const userId = req.user.id;
+
+  try {
+    const certificate = await pool.query(
+      'SELECT * FROM certificates WHERE user_id = $1 AND course_id = $2 LIMIT 1',
+      [userId, courseId]
+    );
+
+    const completion = await getCourseCompletionStats(userId, courseId);
+    const status = {
+      earned: certificate.rows.length > 0,
+      certificate: certificate.rows[0] || null,
+      completion,
+    };
+
+    res.json(status);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching certificate status', error: error.message });
+  }
+};
+
 export const getUserProgress = async (req, res) => {
   const { courseId } = req.params;
   const userId = req.user.id;
@@ -203,7 +375,16 @@ export const getUserProgress = async (req, res) => {
       [userId, courseId]
     );
     const completedLessons = progress.rows.map(row => row.lesson_id);
-    res.json({ completedLessons });
+    const certificate = await pool.query(
+      'SELECT * FROM certificates WHERE user_id = $1 AND course_id = $2 LIMIT 1',
+      [userId, courseId]
+    );
+
+    res.json({
+      completedLessons,
+      certificateEarned: certificate.rows.length > 0,
+      certificate: certificate.rows[0] || null,
+    });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching user progress', error: error.message });
   }
