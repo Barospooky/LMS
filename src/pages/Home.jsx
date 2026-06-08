@@ -349,7 +349,9 @@ const Home = () => {
         localStorage.removeItem('token');
         localStorage.setItem('user', JSON.stringify(data.user));
         setShowAuthModal(false);
-        navigate('/dashboard');
+        if (data.user.role === 'admin') navigate('/admin/overview');
+        else if (data.user.role === 'instructor') navigate('/instructor/overview');
+        else navigate('/dashboard');
       } else {
         setError(data.message || 'Login failed');
       }
@@ -404,7 +406,9 @@ const Home = () => {
         localStorage.removeItem('token');
         localStorage.setItem('user', JSON.stringify(data.user));
         setShowAuthModal(false);
-        navigate('/dashboard');
+        if (data.user.role === 'admin') navigate('/admin/overview');
+        else if (data.user.role === 'instructor') navigate('/instructor/overview');
+        else navigate('/dashboard');
       } else {
         setError(data.message || 'Signup failed');
       }
@@ -431,7 +435,9 @@ const Home = () => {
         localStorage.removeItem('token');
         localStorage.setItem('user', JSON.stringify(data.user));
         setShowAuthModal(false);
-        navigate('/dashboard');
+        if (data.user.role === 'admin') navigate('/admin/overview');
+        else if (data.user.role === 'instructor') navigate('/instructor/overview');
+        else navigate('/dashboard');
       } else {
         setError(data.message || 'Google login failed');
       }

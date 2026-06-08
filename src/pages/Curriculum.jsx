@@ -1,8 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import {
+  BarChart3,
+  BookOpenCheck,
+  Compass,
+  FolderOpen,
+  Globe2,
+  LayoutDashboard,
+  LogOut,
+  Settings,
+  Users,
+} from 'lucide-react';
 import '../styles/main.css';
 import '../styles/dashboard.css';
 import Reveal from '../components/Reveal';
+import StudentSidebar from '../components/StudentSidebar';
 import useMagnetic from '../hooks/useMagnetic';
 import { buildCourseArtwork } from '../utils/courseArt';
 import SuccessModal from '../components/SuccessModal';
@@ -55,6 +67,81 @@ const Curriculum = () => {
       setLoading(false);
     }
   };
+
+  const handleLogout = () => {
+    apiFetch('/api/auth/logout', { method: 'POST' }, { retryOn401: false }).catch(() => {});
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigate('/');
+  };
+
+  const navigateToDashboardSection = (scrollTo) => {
+    navigate('/dashboard', { state: { scrollTo } });
+  };
+
+  const sidebarNavItems = [
+    {
+      key: 'dashboard',
+      label: 'Dashboard',
+      icon: <LayoutDashboard size={16} />,
+      onClick: () => navigateToDashboardSection('dashboard'),
+    },
+    {
+      key: 'my-courses',
+      label: 'My Courses',
+      icon: <BookOpenCheck size={16} />,
+      onClick: () => navigateToDashboardSection('my-courses'),
+    },
+    {
+      key: 'catalog',
+      label: 'Catalog',
+      icon: <Compass size={16} />,
+      active: true,
+      onClick: () => navigateToDashboardSection('catalog'),
+    },
+    {
+      key: 'progress',
+      label: 'Progress',
+      icon: <BarChart3 size={16} />,
+      onClick: () => navigateToDashboardSection('progress'),
+    },
+    {
+      key: 'resources',
+      label: 'Resources',
+      icon: <FolderOpen size={16} />,
+      onClick: () => navigateToDashboardSection('resources'),
+    },
+    {
+      key: 'community',
+      label: 'Community',
+      icon: <Users size={16} />,
+      onClick: () => navigateToDashboardSection('community'),
+    },
+    {
+      key: 'settings',
+      label: 'Settings',
+      icon: <Settings size={16} />,
+      onClick: () => navigate('/settings'),
+    },
+    ...(user?.role === 'admin'
+      ? [
+          {
+            key: 'admin-panel',
+            label: 'Admin Panel',
+            icon: <Globe2 size={16} />,
+            className: 'admin-nav-label',
+            onClick: () => navigate('/admin/overview'),
+          },
+        ]
+      : []),
+    {
+      key: 'logout',
+      label: 'Logout',
+      icon: <LogOut size={16} />,
+      className: 'logout-btn',
+      onClick: handleLogout,
+    },
+  ];
 
   const handlePurchase = async () => {
     setPurchasing(true);
@@ -148,33 +235,11 @@ const Curriculum = () => {
 
   return (
     <div className="dashboard-page">
-      <aside className="sidebar">
-        <div className="sidebar-brand">
-          <img 
-            src="https://amplepro.in/wp-content/uploads/2024/06/new-logo-ap.webp" 
-            alt="Amplepro Logo" 
-            className="brand-logo-img-small"
-          />
-        </div>
-        <div className="sidebar-spotlight">
-          <span className="sidebar-kicker">{user ? `${user.firstName}'s study` : "Member area"}</span>
-          <strong>{course?.title || 'Course details'}</strong>
-          <p>Track progress, resume active modules, and unlock certificates.</p>
-        </div>
-        <nav className="sidebar-nav">
-          <a href="#" className="nav-item active" onClick={(e) => { e.preventDefault(); navigate('/dashboard'); }}>
-            <span>01 / My Journey</span>
-          </a>
-          <a href="#" className="nav-item" onClick={(e) => { e.preventDefault(); navigate('/dashboard'); }}>
-            <span>02 / All Courses</span>
-          </a>
-          {user && user.role === 'admin' && (
-            <a href="#" className="nav-item admin-link" onClick={(e) => { e.preventDefault(); navigate('/admin/overview'); }}>
-              <span style={{ color: 'var(--accent)', fontWeight: 'bold' }}>⭐ Admin Panel</span>
-            </a>
-          )}
-        </nav>
-      </aside>
+      <StudentSidebar
+        user={user}
+        title={user ? `${user.firstName}'s studio` : 'My study'}
+        navItems={sidebarNavItems}
+      />
 
       <main className="dash-main">
         <header className="dash-header">

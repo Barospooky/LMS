@@ -3,6 +3,7 @@ import {
   getStatsOverview,
   getUsers,
   updateUserRole,
+  getAdminCourses,
   createCourse,
   updateCourse,
   deleteCourse,
@@ -16,18 +17,19 @@ import { courseUpload, lessonUpload } from '../middleware/uploadMiddleware.js';
 
 const router = express.Router();
 
-// All routes require both login and admin role
+// All routes require both login and admin/instructor role
 router.use(auth);
-router.use(requireRole('admin'));
+router.use(requireRole('admin', 'instructor'));
 
 // Stats Overview
 router.get('/overview', getStatsOverview);
 
-// User Management
+// User Management (Controller will restrict to Admin only)
 router.get('/users', getUsers);
 router.put('/users/:id/role', updateUserRole);
 
 // Course CRUD
+router.get('/courses', getAdminCourses);
 router.post('/courses', courseUpload.single('thumbnail_file'), createCourse);
 router.put('/courses/:id', courseUpload.single('thumbnail_file'), updateCourse);
 router.delete('/courses/:id', deleteCourse);

@@ -3,8 +3,9 @@ import Home from './pages/Home'
 import Dashboard from './pages/Dashboard'
 import Course from './pages/Course'
 import Curriculum from './pages/Curriculum'
+import Settings from './pages/Settings'
 import ProtectedRoute from './components/ProtectedRoute'
-import AdminRoute from './components/AdminRoute'
+import RoleRoute from './components/RoleRoute'
 import AdminLayout from './pages/admin/AdminLayout'
 import AdminOverview from './pages/admin/AdminOverview'
 import CourseManager from './pages/admin/CourseManager'
@@ -43,20 +44,43 @@ function App() {
             </ProtectedRoute>
           } 
         />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <Settings />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Administrative Routes */}
+        {/* Admin Routes */}
         <Route 
           path="/admin" 
           element={
-            <AdminRoute>
+            <RoleRoute allowedRoles={['admin']}>
               <AdminLayout />
-            </AdminRoute>
+            </RoleRoute>
           }
         >
           <Route index element={<Navigate to="/admin/overview" replace />} />
           <Route path="overview" element={<AdminOverview />} />
           <Route path="courses" element={<CourseManager />} />
           <Route path="users" element={<UserManager />} />
+        </Route>
+
+        {/* Instructor Routes */}
+        <Route 
+          path="/instructor" 
+          element={
+            <RoleRoute allowedRoles={['instructor']}>
+              <AdminLayout />
+            </RoleRoute>
+          }
+        >
+          <Route index element={<Navigate to="/instructor/overview" replace />} />
+          <Route path="overview" element={<AdminOverview />} />
+          <Route path="courses" element={<CourseManager />} />
         </Route>
       </Routes>
       <Chatbot />

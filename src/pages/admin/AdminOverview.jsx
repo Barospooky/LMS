@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   BookOpen,
   DollarSign,
@@ -7,6 +8,9 @@ import {
   Users,
   BarChart3,
   PieChart,
+  Activity,
+  PlusCircle,
+  Settings
 } from 'lucide-react';
 import Reveal from '../../components/Reveal';
 import { formatCategoryLabel, formatInrCurrency } from '../../utils/category';
@@ -65,11 +69,17 @@ const buildPolylinePoints = (values, width = 320, height = 120, padding = 14) =>
 };
 
 const AdminOverview = () => {
+  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
     fetchStats();
   }, []);
 
@@ -112,96 +122,131 @@ const AdminOverview = () => {
   if (error) return <div style={{ color: 'var(--danger)', padding: '20px' }}>{error}</div>;
 
   const { stats, recentUsers, recentEnrollments, categoryDistribution } = data || {};
+  const totalRevenueSum = revenueTrend.reduce((sum, item) => sum + item.value, 0);
+  const totalEnrollmentsSum = enrollmentTrend.reduce((sum, item) => sum + item.value, 0);
   const revenuePoints = buildPolylinePoints(revenueTrend.map((item) => item.value));
   const maxEnrollmentValue = Math.max(...enrollmentTrend.map((item) => item.value), 1);
   const maxTopCourse = Math.max(...topCourses.map((course) => course.enrollments), 1);
+  const isAdmin = user?.role === 'admin';
 
   return (
     <div className="admin-overview-shell">
-      <header className="admin-header">
+      <header className="admin-header" style={{ marginBottom: '24px' }}>
         <Reveal>
           <div>
-            <h1>Overview</h1>
-            <p className="text-secondary">Real-time statistics, revenue, and active student signups across the white-labeled LMS.</p>
+            <h1 style={{ fontSize: '32px', marginBottom: '8px' }}>Good Morning, {user?.firstName || 'Admin'} 👋</h1>
+            <p className="text-secondary">Here is what's happening across your {isAdmin ? 'white-labeled LMS' : 'courses'} today.</p>
           </div>
         </Reveal>
       </header>
 
+      {/* KPI Cards Row */}
       <Reveal delay="0.1s">
-        <div className="stats-grid">
-          <div className="stat-card">
+        <div 
+          className="stats-grid" 
+          style={{ 
+            display: 'grid', 
+            gridTemplateColumns: isAdmin ? 'repeat(auto-fit, minmax(200px, 1fr))' : 'repeat(auto-fit, minmax(300px, 1fr))', 
+            gap: '16px', 
+            marginBottom: '24px' 
+          }}
+        >
+          <div className="stat-card hover-lift" style={{ transition: 'transform 0.2s', cursor: 'default' }}>
             <div className="stat-card-header">
-              <span className="stat-card-icon stat-icon-courses"><BookOpen size={16} /></span>
+              <span className="stat-card-icon stat-icon-courses" style={{ background: 'rgba(23, 20, 17, 0.08)' }}><BookOpen size={16} /></span>
               <span>Total Courses</span>
             </div>
-            <strong>{stats?.totalCourses || 0}</strong>
+            <strong style={{ fontSize: '28px' }}>{stats?.totalCourses || 0}</strong>
+            <div style={{ fontSize: '12px', color: 'var(--success)', marginTop: '8px' }}>↑ 12% this month</div>
           </div>
-          <div className="stat-card">
-            <div className="stat-card-header">
-              <span className="stat-card-icon stat-icon-users"><Users size={16} /></span>
-              <span>Total Registered Users</span>
+          
+          {isAdmin && (
+            <div className="stat-card hover-lift" style={{ transition: 'transform 0.2s', cursor: 'default' }}>
+              <div className="stat-card-header">
+                <span className="stat-card-icon stat-icon-users" style={{ background: 'rgba(23, 20, 17, 0.08)' }}><Users size={16} /></span>
+                <span>Total Users</span>
+              </div>
+              <strong style={{ fontSize: '28px' }}>{stats?.totalUsers || 0}</strong>
+              <div style={{ fontSize: '12px', color: 'var(--success)', marginTop: '8px' }}>↑ 8% this month</div>
             </div>
-            <strong>{stats?.totalUsers || 0}</strong>
-          </div>
-          <div className="stat-card">
+          )}
+
+          <div className="stat-card hover-lift" style={{ transition: 'transform 0.2s', cursor: 'default' }}>
             <div className="stat-card-header">
-              <span className="stat-card-icon stat-icon-enrollments"><GraduationCap size={16} /></span>
+              <span className="stat-card-icon stat-icon-enrollments" style={{ background: 'rgba(23, 20, 17, 0.08)' }}><GraduationCap size={16} /></span>
               <span>Active Enrollments</span>
             </div>
-            <strong>{stats?.totalEnrollments || 0}</strong>
+            <strong style={{ fontSize: '28px' }}>{stats?.totalEnrollments || 0}</strong>
+            <div style={{ fontSize: '12px', color: 'var(--success)', marginTop: '8px' }}>↑ 24% this month</div>
           </div>
-          <div className="stat-card stat-card-revenue">
-            <div className="stat-card-header">
-              <span className="stat-card-icon stat-icon-revenue"><DollarSign size={16} /></span>
-              <span>Total Revenue (INR)</span>
+
+          {isAdmin && (
+            <div className="stat-card stat-card-revenue hover-lift" style={{ transition: 'transform 0.2s', cursor: 'default' }}>
+              <div className="stat-card-header">
+                <span className="stat-card-icon stat-icon-revenue" style={{ background: 'rgba(23, 20, 17, 0.08)' }}><DollarSign size={16} /></span>
+                <span>Total Revenue</span>
+              </div>
+              <strong style={{ fontSize: '28px' }}>{formatInrCurrency(stats?.totalRevenue || 0)}</strong>
+              <div style={{ fontSize: '12px', color: 'var(--success)', marginTop: '8px' }}>↑ 18% this month</div>
             </div>
-            <strong>{formatInrCurrency(stats?.totalRevenue || 0)}</strong>
-          </div>
+          )}
         </div>
       </Reveal>
 
       <div className="admin-analytics-grid">
-        <Reveal delay="0.15s">
-          <div className="admin-section analytics-card">
-            <div className="analytics-header">
-              <div>
-                <h2 className="text-serif">Revenue Trend</h2>
-                <p className="text-secondary">Revenue collected over the last 6 months.</p>
+        {/* Charts Row */}
+        {isAdmin && (
+          <Reveal delay="0.15s">
+            <div className="admin-section analytics-card">
+              <div className="analytics-header">
+                <div>
+                  <h2 className="text-serif">Revenue Trend</h2>
+                  <p className="text-secondary">Revenue collected over the last 6 months.</p>
+                </div>
+                <TrendingUp size={18} />
               </div>
-              <TrendingUp size={18} />
+              {totalRevenueSum > 0 ? (
+                <>
+                  <svg className="overview-chart" viewBox="0 0 320 140" role="img" aria-label="Revenue trend chart">
+                    <defs>
+                      <linearGradient id="revenueFill" x1="0" x2="0" y1="0" y2="1">
+                        <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.28" />
+                        <stop offset="100%" stopColor="var(--accent)" stopOpacity="0.03" />
+                      </linearGradient>
+                    </defs>
+                    <polyline
+                      points={revenuePoints}
+                      fill="none"
+                      stroke="var(--accent)"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <polygon
+                      points={`14,126 ${revenuePoints} 306,126`}
+                      fill="url(#revenueFill)"
+                      opacity="0.9"
+                    />
+                  </svg>
+                  <div className="chart-axis">
+                    {revenueTrend.map((item) => (
+                      <span key={item.label}>{item.label}</span>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '172px', opacity: 0.6 }}>
+                  <DollarSign size={40} style={{ marginBottom: '8px' }} />
+                  <p style={{ fontSize: '14px', fontWeight: 600 }}>No Revenue Data Available</p>
+                </div>
+              )}
+              <div className="analytics-summary-row">
+                <strong>{formatInrCurrency(totalRevenueSum)}</strong>
+                <span>6-month total</span>
+              </div>
             </div>
-            <svg className="overview-chart" viewBox="0 0 320 140" role="img" aria-label="Revenue trend chart">
-              <defs>
-                <linearGradient id="revenueFill" x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.28" />
-                  <stop offset="100%" stopColor="var(--accent)" stopOpacity="0.03" />
-                </linearGradient>
-              </defs>
-              <polyline
-                points={revenuePoints}
-                fill="none"
-                stroke="var(--accent)"
-                strokeWidth="3"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <polygon
-                points={`14,126 ${revenuePoints} 306,126`}
-                fill="url(#revenueFill)"
-                opacity="0.9"
-              />
-            </svg>
-            <div className="chart-axis">
-              {revenueTrend.map((item) => (
-                <span key={item.label}>{item.label}</span>
-              ))}
-            </div>
-            <div className="analytics-summary-row">
-              <strong>{formatInrCurrency(revenueTrend.reduce((sum, item) => sum + item.value, 0))}</strong>
-              <span>6-month total</span>
-            </div>
-          </div>
-        </Reveal>
+          </Reveal>
+        )}
 
         <Reveal delay="0.2s">
           <div className="admin-section analytics-card">
@@ -212,22 +257,55 @@ const AdminOverview = () => {
               </div>
               <BarChart3 size={18} />
             </div>
-            <div className="chart-bars" role="img" aria-label="Monthly enrollment chart">
-              {enrollmentTrend.map((item) => (
-                  <div key={item.label} className="chart-bar-group">
-                  <div className="chart-bar-track">
-                    <div
-                      className="chart-bar-fill chart-bar-enrollments"
-                      style={{ height: `${Math.max(10, item.value ? (item.value / maxEnrollmentValue) * 100 : 10)}%` }}
-                    />
+            {totalEnrollmentsSum > 0 ? (
+              <div className="chart-bars" role="img" aria-label="Monthly enrollment chart">
+                {enrollmentTrend.map((item) => (
+                    <div key={item.label} className="chart-bar-group">
+                    <div className="chart-bar-track">
+                      <div
+                        className="chart-bar-fill chart-bar-enrollments"
+                        style={{ height: `${Math.max(10, item.value ? (item.value / maxEnrollmentValue) * 100 : 10)}%` }}
+                      />
+                    </div>
+                    <span>{item.label}</span>
                   </div>
-                  <span>{item.label}</span>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '172px', opacity: 0.6 }}>
+                <BarChart3 size={40} style={{ marginBottom: '8px' }} />
+                <p style={{ fontSize: '14px', fontWeight: 600 }}>No Enrollment Data Available</p>
+              </div>
+            )}
             <div className="analytics-summary-row">
-              <strong>{enrollmentTrend.reduce((sum, item) => sum + item.value, 0)}</strong>
+              <strong>{totalEnrollmentsSum}</strong>
               <span>6-month total</span>
+            </div>
+          </div>
+        </Reveal>
+
+        {/* Quick Actions Widget */}
+        <Reveal delay="0.22s">
+          <div className="admin-section">
+            <div className="analytics-header">
+              <div>
+                <h2 className="text-serif">Quick Actions</h2>
+                <p className="text-secondary">Shortcuts to manage your LMS.</p>
+              </div>
+              <Activity size={18} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
+              <button onClick={() => navigate(`/${user?.role === 'instructor' ? 'instructor' : 'admin'}/courses`)} className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', justifyContent: 'center' }}>
+                <PlusCircle size={16} /> Create Course
+              </button>
+              {isAdmin && (
+                <button onClick={() => navigate('/admin/users')} className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', justifyContent: 'center' }}>
+                  <Users size={16} /> Manage Users
+                </button>
+              )}
+              <button className="btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', justifyContent: 'center', opacity: 0.5, cursor: 'not-allowed' }}>
+                <Settings size={16} /> Settings (Coming Soon)
+              </button>
             </div>
           </div>
         </Reveal>
@@ -267,25 +345,27 @@ const AdminOverview = () => {
           </div>
         </Reveal>
 
-        <Reveal delay="0.3s">
-          <div className="admin-section">
-            <h2 className="text-serif" style={{ fontSize: '24px', marginBottom: '18px' }}>Course Distribution by Category</h2>
-            <div className="category-distribution-grid">
-              {categoryDistribution?.map((cat, index) => (
-                <div key={index} className="category-distribution-card">
-                  <span>{formatCategoryLabel(cat.category)}</span>
-                  <strong>{cat.count} courses</strong>
-                </div>
-              ))}
-              {categoryDistribution?.length === 0 && (
-                <p style={{ opacity: 0.5 }}>No courses loaded in categories.</p>
-              )}
+        {isAdmin && (
+          <Reveal delay="0.3s">
+            <div className="admin-section">
+              <h2 className="text-serif" style={{ fontSize: '24px', marginBottom: '18px' }}>Course Distribution by Category</h2>
+              <div className="category-distribution-grid">
+                {categoryDistribution?.map((cat, index) => (
+                  <div key={index} className="category-distribution-card">
+                    <span>{formatCategoryLabel(cat.category)}</span>
+                    <strong>{cat.count} courses</strong>
+                  </div>
+                ))}
+                {categoryDistribution?.length === 0 && (
+                  <p style={{ opacity: 0.5 }}>No courses loaded in categories.</p>
+                )}
+              </div>
             </div>
-          </div>
-        </Reveal>
+          </Reveal>
+        )}
       </div>
 
-      <div className="manager-split manager-split-overview">
+      <div className="manager-split manager-split-overview" style={{ display: 'grid', gridTemplateColumns: isAdmin ? '1fr 1fr' : '1fr', gap: '24px' }}>
         <Reveal delay="0.35s">
           <div className="admin-section">
             <h2 className="text-serif" style={{ fontSize: '24px', marginBottom: '18px' }}>Recent Enrollments</h2>
@@ -320,36 +400,38 @@ const AdminOverview = () => {
           </div>
         </Reveal>
 
-        <Reveal delay="0.4s">
-          <div className="admin-section">
-            <h2 className="text-serif" style={{ fontSize: '24px', marginBottom: '18px' }}>Recent Registrations</h2>
-            <div className="admin-table-container">
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Role</th>
-                    <th>Registered</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentUsers?.map((u) => (
-                    <tr key={u.id}>
-                      <td>
-                        <strong>{u.first_name} {u.last_name}</strong>
-                        <div style={{ fontSize: '12px', opacity: 0.6 }}>{u.email}</div>
-                      </td>
-                      <td>
-                        <span className={`admin-badge badge-${u.role}`}>{u.role}</span>
-                      </td>
-                      <td>{new Date(u.created_at).toLocaleDateString()}</td>
+        {isAdmin && (
+          <Reveal delay="0.4s">
+            <div className="admin-section">
+              <h2 className="text-serif" style={{ fontSize: '24px', marginBottom: '18px' }}>Recent Registrations</h2>
+              <div className="admin-table-container">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Role</th>
+                      <th>Registered</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {recentUsers?.map((u) => (
+                      <tr key={u.id}>
+                        <td>
+                          <strong>{u.first_name} {u.last_name}</strong>
+                          <div style={{ fontSize: '12px', opacity: 0.6 }}>{u.email}</div>
+                        </td>
+                        <td>
+                          <span className={`admin-badge badge-${u.role}`}>{u.role}</span>
+                        </td>
+                        <td>{new Date(u.created_at).toLocaleDateString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
-        </Reveal>
+          </Reveal>
+        )}
       </div>
     </div>
   );

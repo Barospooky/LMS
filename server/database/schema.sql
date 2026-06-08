@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS courses (
   id SERIAL PRIMARY KEY,
+  instructor_id INT REFERENCES users(id) ON DELETE SET NULL,
   title VARCHAR(255) NOT NULL,
   description TEXT,
   price DECIMAL(10, 2) DEFAULT 0.00,
@@ -34,7 +35,8 @@ CREATE TABLE IF NOT EXISTS quizzes (
   lesson_id INT NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
   question TEXT NOT NULL,
   options JSONB NOT NULL,
-  correct_answer VARCHAR(255) NOT NULL
+  correct_answer VARCHAR(255) NOT NULL,
+  type VARCHAR(50) NOT NULL DEFAULT 'text'
 );
 
 CREATE TABLE IF NOT EXISTS user_courses (

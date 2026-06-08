@@ -2,7 +2,14 @@
 .admin-layout {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 1024px) {
+  .admin-layout {
+    grid-template-columns: 260px minmax(0, 1fr);
+  }
+}
+.admin-layout {
   gap: 18px;
   padding: 16px;
   align-items: start;
@@ -13,8 +20,8 @@
   top: 22px;
   align-self: start;
   min-height: calc(100vh - 44px);
-  padding: 30px 24px;
-  border-radius: 34px;
+  padding: 20px 24px;
+  border-radius: 8px;
   background: var(--bg-dark);
   color: #ffffff;
   box-shadow: var(--shadow-lg);
@@ -44,7 +51,7 @@
   gap: 12px;
   min-height: 54px;
   padding: 0 18px;
-  border-radius: 18px;
+  border-radius: 8px;
   color: rgba(255, 248, 241, 0.7);
   background: transparent;
   transition: var(--transition-fast);
@@ -75,12 +82,12 @@
 
 .admin-header,
 .admin-section {
-  border-radius: 34px;
+  border-radius: 8px;
   background: rgba(255, 251, 245, 0.68);
   border: 1px solid rgba(255, 255, 255, 0.44);
   box-shadow: var(--shadow-md);
   backdrop-filter: blur(18px);
-  padding: 24px;
+  padding: 16px;
   width: 100%;
   min-width: 0;
 }
@@ -109,8 +116,8 @@
 }
 
 .stat-card {
-  padding: 24px;
-  border-radius: 28px;
+  padding: 16px;
+  border-radius: 8px;
   background: rgba(255, 251, 245, 0.88);
   border: 1px solid rgba(23, 20, 17, 0.08);
   box-shadow: 0 4px 20px rgba(0,0,0,0.02);
@@ -271,7 +278,7 @@
   min-width: 0;
   padding: 8px 12px;
   font-size: 13px;
-  border-radius: 12px;
+  border-radius: 6px;
 }
 
 /* Badges */
@@ -379,7 +386,7 @@
 .source-preview {
   margin-top: 12px;
   padding: 12px;
-  border-radius: 18px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.72);
   border: 1px solid var(--line-soft);
 }
@@ -388,7 +395,7 @@
   width: 100%;
   height: 160px;
   object-fit: cover;
-  border-radius: 14px;
+  border-radius: 8px;
   display: block;
   margin-bottom: 10px;
 }
@@ -402,7 +409,7 @@
 .source-preview-icon {
   width: 34px;
   height: 34px;
-  border-radius: 12px;
+  border-radius: 6px;
   background: rgba(0, 174, 177, 0.1);
   color: var(--accent);
   display: flex;
@@ -537,7 +544,7 @@
   min-width: 0;
   max-width: 100%;
   padding: 0 14px;
-  border-radius: 16px;
+  border-radius: 8px;
   border: 1px solid var(--line-soft);
   background: rgba(255, 255, 255, 0.8);
 }
@@ -652,7 +659,7 @@
   align-items: flex-start;
   gap: 16px;
   padding: 14px 18px;
-  border-radius: 18px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.6);
   border: 1px solid var(--line-soft);
 }
@@ -720,7 +727,7 @@
 
 .category-distribution-card {
   padding: 16px 18px;
-  border-radius: 18px;
+  border-radius: 8px;
   background: rgba(255,255,255,0.7);
   border: 1px solid var(--line-soft);
 }
@@ -745,7 +752,7 @@
 
 .admin-analytics-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 18px;
 }
 
@@ -821,7 +828,7 @@
 .chart-bar-track {
   width: 100%;
   height: 140px;
-  border-radius: 18px;
+  border-radius: 8px;
   background: rgba(10, 37, 39, 0.05);
   display: flex;
   align-items: flex-end;
@@ -860,7 +867,7 @@
 .top-course-rank {
   width: 40px;
   height: 40px;
-  border-radius: 14px;
+  border-radius: 8px;
   background: rgba(0, 174, 177, 0.12);
   color: var(--accent);
   display: flex;
@@ -907,7 +914,7 @@
 }
 
 .user-card {
-  border-radius: 24px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.75);
   border: 1px solid var(--line-soft);
   padding: 18px;
@@ -1093,4 +1100,18 @@
   .chart-bars {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+}
+
+
+.admin-modal-content {
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.admin-modal-content::-webkit-scrollbar {
+  display: none;
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 12px 24px rgba(0,0,0,0.12) !important;
 }

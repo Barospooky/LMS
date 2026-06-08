@@ -156,7 +156,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24px 5%;
+  padding: 16px 5%;
   max-width: 1440px;
   margin: 0 auto;
 }

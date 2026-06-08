@@ -61,7 +61,7 @@ const CourseManager = () => {
 
   const fetchCourses = async () => {
     try {
-      const response = await apiFetch('/api/courses');
+      const response = await apiFetch('/api/admin/courses');
       const responseData = await response.json();
       if (response.ok) {
         setCourses(responseData);
@@ -625,6 +625,7 @@ const CourseManager = () => {
                         setCourseThumbnailFile(null);
                       }}
                       className="admin-input"
+                      style={{ wordBreak: 'break-all' }}
                     />
                   ) : (
                     <input
@@ -654,7 +655,7 @@ const CourseManager = () => {
                 </div>
               </div>
 
-              <div className="modal-actions">
+              <div className="modal-actions" style={{ gap: '16px' }}>
                 <button type="button" onClick={() => setShowCourseForm(false)} className="btn-outline">Cancel</button>
                 <button type="submit" className="btn-primary">Save Course</button>
               </div>
@@ -765,7 +766,7 @@ const CourseManager = () => {
                 />
               </div>
 
-              <div className="modal-actions">
+              <div className="modal-actions" style={{ gap: '16px' }}>
                 <button type="button" onClick={() => setShowLessonForm(false)} className="btn-outline">Cancel</button>
                 <button type="submit" className="btn-primary">Save Lesson</button>
               </div>
@@ -784,7 +785,7 @@ const CourseManager = () => {
             <p className="text-secondary" style={{ marginBottom: '0' }}>
               Please confirm before removing this {pendingDelete.type}.
             </p>
-            <div className="modal-actions">
+            <div className="modal-actions" style={{ gap: '16px' }}>
               <button type="button" className="btn-outline" onClick={() => setPendingDelete(null)}>Cancel</button>
               <button type="button" className="btn-primary" onClick={confirmDelete}>Delete Permanently</button>
             </div>

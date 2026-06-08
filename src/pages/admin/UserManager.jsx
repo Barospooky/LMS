@@ -40,10 +40,8 @@ const UserManager = () => {
       });
       const data = await response.json();
       if (response.ok) {
-        // Update user state locally
         setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
         
-        // Also check if current logged in user is updated, update localstorage
         const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
         if (storedUser.id === userId) {
           storedUser.role = newRole;
@@ -102,7 +100,7 @@ const UserManager = () => {
                   <th>ID</th>
                   <th>Name</th>
                   <th>Email</th>
-                  <th>Auth Provider</th>
+                  <th style={{ minWidth: '120px' }}>Auth Provider</th>
                   <th>Date Joined</th>
                   <th>Role</th>
                   <th style={{ textAlign: 'right' }}>Actions</th>
@@ -118,8 +116,8 @@ const UserManager = () => {
                     <tr key={u.id}>
                       <td>{u.id}</td>
                       <td><strong>{u.first_name} {u.last_name}</strong></td>
-                      <td>{u.email}</td>
-                      <td style={{ textTransform: 'uppercase', fontSize: '12px' }}>{u.auth_provider || 'local'}</td>
+                      <td title={u.email} style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.email}</td>
+                      <td style={{ textTransform: 'uppercase', fontSize: '12px', minWidth: '120px' }}>{u.auth_provider || 'local'}</td>
                       <td>{new Date(u.created_at).toLocaleDateString()}</td>
                       <td>
                         <span className={`admin-badge badge-${u.role}`}>{u.role}</span>

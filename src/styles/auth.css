@@ -49,7 +49,7 @@
   height: 44px;
   background: var(--surface-strong);
   border: 1px solid var(--line-soft);
-  border-radius: 12px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -173,8 +173,8 @@
 }
 
 .hero-metric {
-  padding: 24px;
-  border-radius: 26px;
+  padding: 16px;
+  border-radius: 8px;
   background: rgba(255, 250, 242, 0.76);
   border: 1px solid rgba(23, 20, 17, 0.08);
   display: flex;
@@ -186,7 +186,7 @@
   width: 40px;
   height: 40px;
   background: var(--surface-strong);
-  border-radius: 12px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -326,7 +326,7 @@
 .auth-error {
   margin-bottom: 18px;
   padding: 14px 16px;
-  border-radius: 18px;
+  border-radius: 8px;
   background: rgba(182, 71, 59, 0.08);
   border: 1px solid rgba(182, 71, 59, 0.14);
   color: var(--danger);
@@ -347,7 +347,7 @@
 .auth-form input {
   width: 100%;
   padding: 14px 16px;
-  border-radius: 14px;
+  border-radius: 8px;
   border: 1px solid rgba(23, 20, 17, 0.12);
   background: rgba(255, 252, 247, 0.88);
   color: var(--text-main);
@@ -404,7 +404,7 @@
   gap: 12px;
   min-height: 50px;
   padding: 12px 16px;
-  border-radius: 14px;
+  border-radius: 8px;
   border: 1px solid rgba(23, 20, 17, 0.12);
   background: rgba(255, 252, 247, 0.88);
   font-weight: 700;
@@ -479,8 +479,8 @@
 
   .hero-panel,
   .auth-shell {
-    padding: 24px;
-    border-radius: 28px;
+    padding: 16px;
+    border-radius: 8px;
   }
 
   .auth-modal-content {
@@ -613,7 +613,7 @@
   align-items: center;
   gap: 10px;
   padding: 12px 14px;
-  border-radius: 16px;
+  border-radius: 8px;
   background: rgba(255, 251, 245, 0.72);
   border: 1px solid rgba(23, 20, 17, 0.08);
   transition: var(--transition-fast);
@@ -752,7 +752,7 @@
 .trust-logo-icon {
   width: 48px;
   height: 48px;
-  border-radius: 14px;
+  border-radius: 8px;
   background: rgba(255, 251, 245, 0.9);
   border: 1px solid var(--line-soft);
   display: flex;
@@ -824,7 +824,7 @@
 .testimonial-avatar {
   width: 40px;
   height: 40px;
-  border-radius: 12px;
+  border-radius: 6px;
   background: linear-gradient(135deg, var(--accent), #0a6e70);
   color: #fff;
   display: flex;
@@ -864,7 +864,7 @@
 }
 
 .faq-item {
-  border-radius: 18px;
+  border-radius: 8px;
   background: rgba(255, 251, 245, 0.88);
   border: 1px solid var(--line-soft);
   overflow: hidden;
@@ -992,7 +992,7 @@
 .footer-social-link {
   width: 38px;
   height: 38px;
-  border-radius: 12px;
+  border-radius: 6px;
   background: rgba(255, 251, 245, 0.8);
   border: 1px solid var(--line-soft);
   display: flex;
@@ -1146,4 +1146,13 @@
   .hero-stats-strip {
     grid-template-columns: 1fr;
   }
+}
+
+
+.auth-modal {
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.auth-modal::-webkit-scrollbar {
+  display: none;
 }

@@ -34,18 +34,20 @@ const AdminLayout = () => {
         </div>
         
         <nav className="admin-sidebar-nav">
-          <NavLink to="/admin/overview" className={({ isActive }) => `admin-nav-item ${isActive ? 'active' : ''}`}>
+          <NavLink to={user?.role === 'instructor' ? '/instructor/overview' : '/admin/overview'} className={({ isActive }) => `admin-nav-item ${isActive ? 'active' : ''}`}>
             <LayoutDashboard size={18} />
             <span>Overview</span>
           </NavLink>
-          <NavLink to="/admin/courses" className={({ isActive }) => `admin-nav-item ${isActive ? 'active' : ''}`}>
+          <NavLink to={user?.role === 'instructor' ? '/instructor/courses' : '/admin/courses'} className={({ isActive }) => `admin-nav-item ${isActive ? 'active' : ''}`}>
             <BookOpen size={18} />
             <span>Course Manager</span>
           </NavLink>
-          <NavLink to="/admin/users" className={({ isActive }) => `admin-nav-item ${isActive ? 'active' : ''}`}>
-            <Users size={18} />
-            <span>User Manager</span>
-          </NavLink>
+          {user?.role === 'admin' && (
+            <NavLink to="/admin/users" className={({ isActive }) => `admin-nav-item ${isActive ? 'active' : ''}`}>
+              <Users size={18} />
+              <span>User Manager</span>
+            </NavLink>
+          )}
           
           <button
             onClick={() => navigate('/dashboard')}
@@ -72,7 +74,9 @@ const AdminLayout = () => {
           </div>
           <div className="user-info">
             <strong>{user ? `${user.firstName} ${user.lastName}` : 'Admin'}</strong>
-            <small style={{ color: 'var(--danger)', fontWeight: 'bold' }}>Administrator</small>
+            <small style={{ color: 'var(--danger)', fontWeight: 'bold', textTransform: 'capitalize' }}>
+              {user?.role || 'Administrator'}
+            </small>
           </div>
         </div>
       </aside>

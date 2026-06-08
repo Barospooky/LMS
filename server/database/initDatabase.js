@@ -89,6 +89,12 @@ export const initDatabase = async () => {
     } catch (e) { /* ignore */ }
 
     try {
+      await pool.query("ALTER TABLE courses ADD COLUMN IF NOT EXISTS instructor_id INT REFERENCES users(id) ON DELETE SET NULL");
+      // Optional: Set default instructor to first admin user if we want
+      // await pool.query("UPDATE courses SET instructor_id = (SELECT id FROM users WHERE role = 'admin' LIMIT 1) WHERE instructor_id IS NULL");
+    } catch (e) { /* ignore */ }
+
+    try {
       await pool.query("ALTER TABLE courses ALTER COLUMN thumbnail TYPE TEXT");
     } catch (e) { /* ignore */ }
 

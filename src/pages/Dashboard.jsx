@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Award,
   BarChart3,
@@ -21,6 +21,7 @@ import {
 import '../styles/main.css';
 import '../styles/dashboard.css';
 import Reveal from '../components/Reveal';
+import StudentSidebar from '../components/StudentSidebar';
 import useMagnetic from '../hooks/useMagnetic';
 import { buildCourseArtwork } from '../utils/courseArt';
 import { formatCategoryLabel, getCategoryOptions } from '../utils/category';
@@ -47,6 +48,7 @@ const buildSeries = (base, factors, min = 12, max = 96) =>
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [user, setUser] = useState(null);
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -147,105 +149,108 @@ const Dashboard = () => {
 
   const isAdmin = user?.role === 'admin';
 
+  useEffect(() => {
+    const targetSection = location.state?.scrollTo;
+    if (!targetSection) return;
+
+    const sectionRefs = {
+      dashboard: topRef,
+      'my-courses': myCoursesRef,
+      catalog: libraryRef,
+      progress: progressRef,
+      resources: resourcesRef,
+      community: resourcesRef,
+      settings: resourcesRef,
+    };
+
+    const targetRef = sectionRefs[targetSection];
+    if (!targetRef?.current) return;
+
+    const animationFrame = window.requestAnimationFrame(() => {
+      targetRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setActiveNav(targetSection);
+    });
+
+    return () => window.cancelAnimationFrame(animationFrame);
+  }, [location.state]);
+
+  const dashboardNavItems = [
+    {
+      key: 'dashboard',
+      label: 'Dashboard',
+      icon: <LayoutDashboard size={16} />,
+      active: activeNav === 'dashboard',
+      onClick: () => scrollToSection(topRef, 'dashboard'),
+    },
+    {
+      key: 'my-courses',
+      label: 'My Courses',
+      icon: <BookOpenCheck size={16} />,
+      active: activeNav === 'my-courses',
+      onClick: () => scrollToSection(myCoursesRef, 'my-courses'),
+    },
+    {
+      key: 'catalog',
+      label: 'Catalog',
+      icon: <Compass size={16} />,
+      active: activeNav === 'catalog',
+      onClick: () => scrollToSection(libraryRef, 'catalog'),
+    },
+    {
+      key: 'progress',
+      label: 'Progress',
+      icon: <BarChart3 size={16} />,
+      active: activeNav === 'progress',
+      onClick: () => scrollToSection(progressRef, 'progress'),
+    },
+    {
+      key: 'resources',
+      label: 'Resources',
+      icon: <FolderOpen size={16} />,
+      active: activeNav === 'resources',
+      onClick: () => scrollToSection(resourcesRef, 'resources'),
+    },
+    {
+      key: 'community',
+      label: 'Community',
+      icon: <Users size={16} />,
+      active: activeNav === 'community',
+      onClick: () => scrollToSection(resourcesRef, 'community'),
+    },
+    {
+      key: 'settings',
+      label: 'Settings',
+      icon: <Settings size={16} />,
+      active: activeNav === 'settings',
+      onClick: () => navigate('/settings'),
+    },
+    ...(isAdmin
+      ? [
+          {
+            key: 'admin-panel',
+            label: 'Admin Panel',
+            icon: <Globe2 size={16} />,
+            className: 'admin-nav-label',
+            onClick: () => navigate('/admin/overview'),
+          },
+        ]
+      : []),
+    {
+      key: 'logout',
+      label: 'Logout',
+      icon: <LogOut size={16} />,
+      className: 'logout-btn',
+      onClick: handleLogout,
+    },
+  ];
+
   return (
     <div className="dashboard-page">
-      <aside className="sidebar">
-        <div className="sidebar-brand">
-          <img
-            src="https://amplepro.in/wp-content/uploads/2024/06/new-logo-ap.webp"
-            alt="Amplepro Logo"
-            className="brand-logo-img-small"
-          />
-        </div>
-        <div className="sidebar-spotlight">
-          <span className="sidebar-kicker">Student hub</span>
-          <strong>{user ? `${user.firstName}'s studio` : 'My study'}</strong>
-          <p>Track progress, resume active modules, and unlock certificates.</p>
-        </div>
-        <nav className="sidebar-nav">
-          <button
-            type="button"
-            className={`nav-item ${activeNav === 'dashboard' ? 'active' : ''}`}
-            onClick={() => scrollToSection(topRef, 'dashboard')}
-          >
-            <span className="nav-icon"><LayoutDashboard size={16} /></span>
-            <span className="nav-text">Dashboard</span>
-          </button>
-          <button
-            type="button"
-            className={`nav-item ${activeNav === 'my-courses' ? 'active' : ''}`}
-            onClick={() => scrollToSection(myCoursesRef, 'my-courses')}
-          >
-            <span className="nav-icon"><BookOpenCheck size={16} /></span>
-            <span className="nav-text">My Courses</span>
-          </button>
-          <button
-            type="button"
-            className={`nav-item ${activeNav === 'catalog' ? 'active' : ''}`}
-            onClick={() => scrollToSection(libraryRef, 'catalog')}
-          >
-            <span className="nav-icon"><Compass size={16} /></span>
-            <span className="nav-text">Catalog</span>
-          </button>
-          <button
-            type="button"
-            className={`nav-item ${activeNav === 'progress' ? 'active' : ''}`}
-            onClick={() => scrollToSection(progressRef, 'progress')}
-          >
-            <span className="nav-icon"><BarChart3 size={16} /></span>
-            <span className="nav-text">Progress</span>
-          </button>
-          <button
-            type="button"
-            className={`nav-item ${activeNav === 'resources' ? 'active' : ''}`}
-            onClick={() => scrollToSection(resourcesRef, 'resources')}
-          >
-            <span className="nav-icon"><FolderOpen size={16} /></span>
-            <span className="nav-text">Resources</span>
-          </button>
-          <button
-            type="button"
-            className={`nav-item ${activeNav === 'community' ? 'active' : ''}`}
-            onClick={() => scrollToSection(resourcesRef, 'community')}
-          >
-            <span className="nav-icon"><Users size={16} /></span>
-            <span className="nav-text">Community</span>
-          </button>
-          <button
-            type="button"
-            className={`nav-item ${activeNav === 'settings' ? 'active' : ''}`}
-            onClick={() => scrollToSection(resourcesRef, 'settings')}
-          >
-            <span className="nav-icon"><Settings size={16} /></span>
-            <span className="nav-text">Settings</span>
-          </button>
-          {isAdmin && (
-            <button
-              type="button"
-              className="nav-item"
-              onClick={() => navigate('/admin/overview')}
-            >
-              <span className="nav-icon"><Globe2 size={16} /></span>
-              <span className="nav-text admin-nav-label">Admin Panel</span>
-            </button>
-          )}
-          <button
-            type="button"
-            className="nav-item logout-btn"
-            onClick={handleLogout}
-          >
-            <span className="nav-icon"><LogOut size={16} /></span>
-            <span className="nav-text">Logout</span>
-          </button>
-        </nav>
-        <div className="sidebar-user">
-          <div className="user-avatar">{user ? user.firstName.charAt(0) : 'U'}</div>
-          <div className="user-info">
-            <strong>{user ? `${user.firstName} ${user.lastName}` : 'User'}</strong>
-            <small>{isAdmin ? 'Administrator' : 'Premium Student'}</small>
-          </div>
-        </div>
-      </aside>
+      <StudentSidebar
+        user={user}
+        title={user ? `${user.firstName}'s studio` : 'My study'}
+        navItems={dashboardNavItems}
+      />
 
       <main className="dash-main">
         <header className="dash-header" ref={topRef}>
@@ -311,16 +316,23 @@ const Dashboard = () => {
                 </div>
                 <span className="insight-chip">This week</span>
               </div>
-              <div className="bar-chart" aria-hidden="true">
-                {weeklyActivitySeries.map((value, index) => (
-                  <div key={`activity-${weekLabels[index]}`} className="bar-column">
-                    <div className="bar-track">
-                      <div className="bar-fill" style={{ height: `${value}%` }} />
+              {purchasedCourses.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-[160px] opacity-60">
+                  <BarChart3 size={40} className="mb-2" />
+                  <p className="text-sm font-semibold">No Activity Data</p>
+                </div>
+              ) : (
+                <div className="bar-chart" aria-hidden="true">
+                  {weeklyActivitySeries.map((value, index) => (
+                    <div key={`activity-${weekLabels[index]}`} className="bar-column">
+                      <div className="bar-track">
+                        <div className="bar-fill" style={{ height: `${value}%` }} />
+                      </div>
+                      <span>{weekLabels[index]}</span>
                     </div>
-                    <span>{weekLabels[index]}</span>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
               <p className="insight-copy">
                 A polished activity view helps clients see momentum, consistency, and day-by-day learning rhythm without needing to open every course.
               </p>
@@ -335,16 +347,23 @@ const Dashboard = () => {
                 </div>
                 <span className="insight-chip insight-chip-dark">Momentum</span>
               </div>
-              <div className="bar-chart bar-chart-alt" aria-hidden="true">
-                {weeklyProgressSeries.map((value, index) => (
-                  <div key={`progress-${weekLabels[index]}`} className="bar-column">
-                    <div className="bar-track">
-                      <div className="bar-fill bar-fill-alt" style={{ height: `${value}%` }} />
+              {purchasedCourses.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-[160px] opacity-60">
+                  <LineChart size={40} className="mb-2" />
+                  <p className="text-sm font-semibold">No Progress Data</p>
+                </div>
+              ) : (
+                <div className="bar-chart bar-chart-alt" aria-hidden="true">
+                  {weeklyProgressSeries.map((value, index) => (
+                    <div key={`progress-${weekLabels[index]}`} className="bar-column">
+                      <div className="bar-track">
+                        <div className="bar-fill bar-fill-alt" style={{ height: `${value}%` }} />
+                      </div>
+                      <span>{weekLabels[index]}</span>
                     </div>
-                    <span>{weekLabels[index]}</span>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
               <div className="insight-metrics">
                 <div>
                   <strong>{purchasedCourses.length}</strong>
@@ -641,7 +660,7 @@ const Dashboard = () => {
             <div className="section-header section-header-stack">
               <div>
                 <div className="section-label">Support Hub</div>
-                <h2 className="text-serif">Resources, community, and account setup.</h2>
+                <h2 className="text-serif">Resources, community, and support.</h2>
               </div>
               <p>These compact cards make the dashboard feel complete even when the underlying pages are still being built.</p>
             </div>
@@ -663,9 +682,9 @@ const Dashboard = () => {
             </Reveal>
             <Reveal delay="0.55s">
               <div className="support-card">
-                <div className="support-card-icon"><Settings size={18} /></div>
-                <strong>Settings</strong>
-                <p>Profile details, preferences, and notifications feel ready for a real product.</p>
+                <div className="support-card-icon"><Sparkles size={18} /></div>
+                <strong>Help Center</strong>
+                <p>Quick guidance for common learner questions, access issues, and course navigation.</p>
               </div>
             </Reveal>
           </div>
