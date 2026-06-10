@@ -354,7 +354,7 @@ const AdminOverview = () => {
         )}
       </div>
 
-      <div className="manager-split manager-split-overview" style={{ display: 'grid', gridTemplateColumns: isAdmin ? '1fr 1fr' : '1fr', gap: '24px' }}>
+      <div className="manager-split manager-split-overview">
         <Reveal delay="0.35s">
           <div className="admin-section">
             <h2 className="text-serif" style={{ fontSize: '24px', marginBottom: '18px' }}>Recent Enrollments</h2>

@@ -146,6 +146,11 @@ const Curriculum = () => {
         return;
       }
 
+      if (!window.Razorpay) {
+        alert('Razorpay checkout did not initialize. Please refresh and try again.');
+        return;
+      }
+
       const response = await apiFetch('/api/payments/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -196,8 +201,8 @@ const Curriculum = () => {
           }
         },
         prefill: {
-          name: `${storedUser.firstName || ''} ${storedUser.lastName || ''}`.trim(),
-          email: storedUser.email || '',
+          name: `${user?.firstName || ''} ${user?.lastName || ''}`.trim(),
+          email: user?.email || '',
         },
         notes: {
           courseId: String(id),
@@ -213,10 +218,16 @@ const Curriculum = () => {
       };
 
       const razorpay = new window.Razorpay(options);
+      razorpay.on('payment.failed', (failure) => {
+        console.error('Razorpay payment failed:', failure);
+        alert(failure?.error?.description || 'Payment failed. Please try again.');
+        setPurchasing(false);
+      });
       razorpay.open();
       return;
     } catch (error) {
       console.error('Error purchasing course:', error);
+      alert(error.message || 'Unable to open Razorpay checkout. Please try again.');
     } finally {
       setPurchasing(false);
     }

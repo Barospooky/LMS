@@ -3,6 +3,7 @@
   min-height: 100vh;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
+  align-items: start;
 }
 @media (min-width: 1024px) {
   .admin-layout {
@@ -73,7 +74,7 @@
 .admin-main {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 24px;
   padding-right: 0;
   padding-bottom: 88px;
   width: 100%;
@@ -87,9 +88,10 @@
   border: 1px solid rgba(255, 255, 255, 0.44);
   box-shadow: var(--shadow-md);
   backdrop-filter: blur(18px);
-  padding: 16px;
+  padding: 22px;
   width: 100%;
   min-width: 0;
+  overflow: visible;
 }
 
 .admin-header {
@@ -111,7 +113,7 @@
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 16px;
+  gap: 18px;
   margin-bottom: 24px;
 }
 
@@ -145,9 +147,15 @@
   width: 30px;
   height: 30px;
   border-radius: 10px;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.stat-card-icon svg {
+  display: block;
 }
 
 .stat-icon-courses { background: rgba(0, 174, 177, 0.12); color: var(--accent); }
@@ -157,10 +165,6 @@
 
 .stat-card-revenue {
   border: 1px solid rgba(211, 47, 47, 0.12);
-}
-
-.stat-card span {
-  display: block;
 }
 
 .stat-card strong {
@@ -175,10 +179,11 @@
 
 /* Data Tables */
 .admin-table-container {
-  overflow-x: hidden;
+  overflow-x: auto;
   margin-top: 18px;
   width: 100%;
   min-width: 0;
+  -webkit-overflow-scrolling: touch;
 }
 
 .admin-table {
@@ -186,6 +191,7 @@
   border-collapse: collapse;
   text-align: left;
   table-layout: fixed;
+  min-width: 860px;
 }
 
 .admin-table th,
@@ -224,8 +230,13 @@
   max-width: 280px;
 }
 
+.admin-table-course-manager {
+  min-width: 640px;
+}
+
 .admin-table-user-manager {
   table-layout: fixed;
+  min-width: 980px;
 }
 
 .admin-table-user-manager th:nth-child(1),
@@ -524,7 +535,7 @@
 }
 
 .manager-split-overview {
-  grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.95fr);
+  grid-template-columns: 1fr;
 }
 
 .section-toolbar {
@@ -723,13 +734,18 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 16px;
+  align-items: stretch;
 }
 
 .category-distribution-card {
-  padding: 16px 18px;
+  min-height: 116px;
+  padding: 18px;
   border-radius: 8px;
   background: rgba(255,255,255,0.7);
   border: 1px solid var(--line-soft);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .category-distribution-card span {
@@ -753,7 +769,7 @@
 .admin-analytics-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 18px;
+  gap: 24px;
 }
 
 .admin-analytics-grid-bottom {
@@ -761,20 +777,50 @@
 }
 
 .analytics-card {
-  min-height: 320px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 
 .analytics-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 16px;
+  row-gap: 8px;
+  align-items: start;
   margin-bottom: 18px;
+}
+
+.analytics-header > div {
+  min-width: 0;
 }
 
 .analytics-header h2 {
   font-size: 24px;
-  margin: 0 0 4px;
+  margin: 0 0 6px;
+  line-height: 1.1;
+}
+
+.analytics-header p {
+  margin: 0;
+}
+
+.analytics-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--primary);
+  background: rgba(10, 37, 39, 0.06);
+  margin-top: 2px;
+}
+
+.analytics-icon svg {
+  display: block;
 }
 
 .overview-chart {
@@ -800,7 +846,7 @@
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  margin-top: 18px;
+  margin-top: auto;
   align-items: baseline;
 }
 
@@ -851,6 +897,24 @@
   color: var(--text-muted);
 }
 
+.quick-actions-list {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.quick-action-btn {
+  width: 100%;
+  min-height: 56px;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 0 18px;
+}
+
+.quick-action-btn svg {
+  flex-shrink: 0;
+}
+
 .top-course-list {
   display: flex;
   flex-direction: column;
@@ -860,11 +924,16 @@
 .top-course-item {
   display: grid;
   grid-template-columns: 40px minmax(0, 1fr);
+  grid-template-areas:
+    "rank copy"
+    "rank meter";
   gap: 14px;
+  row-gap: 8px;
   align-items: center;
 }
 
 .top-course-rank {
+  grid-area: rank;
   width: 40px;
   height: 40px;
   border-radius: 8px;
@@ -877,6 +946,7 @@
 }
 
 .top-course-copy {
+  grid-area: copy;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -894,11 +964,12 @@
 }
 
 .top-course-meter {
-  grid-column: 2;
+  grid-area: meter;
   height: 10px;
   border-radius: 999px;
   background: rgba(10, 37, 39, 0.08);
   overflow: hidden;
+  width: 100%;
 }
 
 .top-course-meter-fill {
@@ -1099,6 +1170,18 @@
 
   .chart-bars {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .analytics-header {
+    grid-template-columns: 1fr;
+  }
+
+  .analytics-icon {
+    justify-self: start;
+  }
+
+  .quick-action-btn {
+    padding: 0 16px;
   }
 }
 

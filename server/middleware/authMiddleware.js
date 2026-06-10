@@ -12,13 +12,22 @@ const readToken = (req) => {
   return bearerToken || req.cookies?.accessToken || null;
 };
 
-const loadUserRole = async (userId) => {
-  const userRes = await pool.query('SELECT role FROM users WHERE id = $1', [userId]);
-  return userRes.rows[0]?.role || 'student';
+const tokenIssuedBeforePasswordChange = (decoded, passwordChangedAt) => {
+  if (!passwordChangedAt || !decoded.iat) return false;
+  return decoded.iat * 1000 < new Date(passwordChangedAt).getTime();
+};
+
+const loadUserAuthState = async (userId) => {
+  const userRes = await pool.query('SELECT role, password_changed_at FROM users WHERE id = $1', [userId]);
+  return userRes.rows[0] || null;
 };
 
 const attachUserRole = async (decoded) => {
-  const role = decoded.role || (await loadUserRole(decoded.id));
+  const user = await loadUserAuthState(decoded.id);
+  if (!user) return null;
+  if (tokenIssuedBeforePasswordChange(decoded, user.password_changed_at)) return null;
+
+  const role = decoded.role || user.role || 'student';
   return { ...decoded, role };
 };
 
@@ -28,7 +37,12 @@ const tryRefresh = async (req, res) => {
 
   try {
     const decoded = jwt.verify(refreshToken, REFRESH_SECRET);
-    const role = decoded.role || (await loadUserRole(decoded.id));
+    const user = await loadUserAuthState(decoded.id);
+    if (!user || tokenIssuedBeforePasswordChange(decoded, user.password_changed_at)) {
+      return null;
+    }
+
+    const role = decoded.role || user.role || 'student';
     const accessToken = signAccessToken(decoded.id, role);
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
@@ -53,6 +67,9 @@ const auth = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, ACCESS_SECRET);
     req.user = await attachUserRole(decoded);
+    if (!req.user) {
+      return res.status(401).json({ message: 'Session expired. Please sign in again.' });
+    }
     next();
   } catch (error) {
     const refreshed = await tryRefresh(req, res);

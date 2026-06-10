@@ -271,11 +271,6 @@ const Settings = () => {
                   </label>
                 </div>
 
-                <div className="settings-meta-card">
-                  <strong>What this saves</strong>
-                  <p>These values update your profile on the server, so the sidebar, dashboard, and account screen stay in sync everywhere you sign in.</p>
-                </div>
-
                 {message && <div className="settings-status">{message}</div>}
 
                 <div className="settings-actions">

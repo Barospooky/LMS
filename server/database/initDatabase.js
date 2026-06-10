@@ -85,7 +85,29 @@ export const initDatabase = async () => {
     } catch (e) { /* ignore */ }
 
     try {
+      await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS password_changed_at TIMESTAMP");
+    } catch (e) { /* ignore */ }
+
+    try {
       await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
+    } catch (e) { /* ignore */ }
+
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS password_reset_tokens (
+          id SERIAL PRIMARY KEY,
+          user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          token_hash TEXT NOT NULL UNIQUE,
+          expires_at TIMESTAMP NOT NULL,
+          used BOOLEAN NOT NULL DEFAULT FALSE,
+          used_at TIMESTAMP,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      await pool.query("ALTER TABLE password_reset_tokens ADD COLUMN IF NOT EXISTS used BOOLEAN NOT NULL DEFAULT FALSE");
+      await pool.query("ALTER TABLE password_reset_tokens ADD COLUMN IF NOT EXISTS used_at TIMESTAMP");
+      await pool.query("CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user_id ON password_reset_tokens(user_id)");
+      await pool.query("CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_hash ON password_reset_tokens(token_hash)");
     } catch (e) { /* ignore */ }
 
     try {
@@ -276,6 +298,45 @@ export const initDatabase = async () => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE (user_id, course_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS course_resources (
+        id SERIAL PRIMARY KEY,
+        course_id INT NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+        lesson_id INT REFERENCES lessons(id) ON DELETE CASCADE,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        resource_type VARCHAR(50) NOT NULL DEFAULT 'link',
+        resource_url TEXT NOT NULL,
+        file_name VARCHAR(255),
+        uploaded_by INT REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS discussion_threads (
+        id SERIAL PRIMARY KEY,
+        course_id INT NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+        lesson_id INT REFERENCES lessons(id) ON DELETE CASCADE,
+        user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        title VARCHAR(255) NOT NULL,
+        body TEXT NOT NULL,
+        is_answered BOOLEAN NOT NULL DEFAULT FALSE,
+        answered_reply_id INT,
+        resolved_by INT REFERENCES users(id) ON DELETE SET NULL,
+        resolved_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS discussion_replies (
+        id SERIAL PRIMARY KEY,
+        thread_id INT NOT NULL REFERENCES discussion_threads(id) ON DELETE CASCADE,
+        user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        body TEXT NOT NULL,
+        is_solution BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `;
 

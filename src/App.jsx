@@ -18,6 +18,9 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/signin" element={<Home />} />
+        <Route path="/forgot-password" element={<Home />} />
+        <Route path="/reset-password" element={<Home />} />
         
         {/* Protected Routes */}
         <Route 

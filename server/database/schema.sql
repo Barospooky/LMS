@@ -10,8 +10,19 @@ CREATE TABLE IF NOT EXISTS users (
   phone VARCHAR(50),
   bio TEXT,
   preferences JSONB NOT NULL DEFAULT '{}'::jsonb,
+  password_changed_at TIMESTAMP,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+  id SERIAL PRIMARY KEY,
+  user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token_hash TEXT NOT NULL UNIQUE,
+  expires_at TIMESTAMP NOT NULL,
+  used BOOLEAN NOT NULL DEFAULT FALSE,
+  used_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS courses (
@@ -203,3 +214,48 @@ CREATE TABLE IF NOT EXISTS certificates (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE (user_id, course_id)
 );
+
+CREATE TABLE IF NOT EXISTS course_resources (
+  id SERIAL PRIMARY KEY,
+  course_id INT NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+  lesson_id INT REFERENCES lessons(id) ON DELETE CASCADE,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  resource_type VARCHAR(50) NOT NULL DEFAULT 'link',
+  resource_url TEXT NOT NULL,
+  file_name VARCHAR(255),
+  uploaded_by INT REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS discussion_threads (
+  id SERIAL PRIMARY KEY,
+  course_id INT NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+  lesson_id INT REFERENCES lessons(id) ON DELETE CASCADE,
+  user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title VARCHAR(255) NOT NULL,
+  body TEXT NOT NULL,
+  is_answered BOOLEAN NOT NULL DEFAULT FALSE,
+  answered_reply_id INT,
+  resolved_by INT REFERENCES users(id) ON DELETE SET NULL,
+  resolved_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS discussion_replies (
+  id SERIAL PRIMARY KEY,
+  thread_id INT NOT NULL REFERENCES discussion_threads(id) ON DELETE CASCADE,
+  user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  body TEXT NOT NULL,
+  is_solution BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_course_resources_course_id ON course_resources(course_id);
+CREATE INDEX IF NOT EXISTS idx_course_resources_lesson_id ON course_resources(lesson_id);
+CREATE INDEX IF NOT EXISTS idx_discussion_threads_course_id ON discussion_threads(course_id);
+CREATE INDEX IF NOT EXISTS idx_discussion_threads_lesson_id ON discussion_threads(lesson_id);
+CREATE INDEX IF NOT EXISTS idx_discussion_replies_thread_id ON discussion_replies(thread_id);

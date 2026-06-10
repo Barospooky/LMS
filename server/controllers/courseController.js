@@ -73,6 +73,21 @@ const issueCertificateIfEligible = async ({ userId, courseId }) => {
   return certificate.rows[0];
 };
 
+const parseOptionalLessonId = (value) => {
+  if (value === undefined || value === null || value === '') return null;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isNaN(parsed) ? null : parsed;
+};
+
+const groupRepliesByThread = (replies = []) =>
+  replies.reduce((acc, reply) => {
+    if (!acc[reply.thread_id]) {
+      acc[reply.thread_id] = [];
+    }
+    acc[reply.thread_id].push(reply);
+    return acc;
+  }, {});
+
 export const getCourses = async (req, res) => {
   const userId = req.user.id;
   const { search, category, difficulty, sort } = req.query;
@@ -266,6 +281,255 @@ export const saveUserProgress = async (req, res) => {
     res.json({ message: 'Lesson progress saved successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Error saving user progress', error: error.message });
+  }
+};
+
+export const getCourseResources = async (req, res) => {
+  const { courseId } = req.params;
+  const lessonId = parseOptionalLessonId(req.query.lessonId);
+
+  try {
+    const resources = await pool.query(
+      `
+      SELECT
+        cr.*,
+        u.first_name,
+        u.last_name,
+        l.title AS lesson_title
+      FROM course_resources cr
+      LEFT JOIN users u ON u.id = cr.uploaded_by
+      LEFT JOIN lessons l ON l.id = cr.lesson_id
+      WHERE cr.course_id = $1
+        AND ($2::int IS NULL OR cr.lesson_id IS NULL OR cr.lesson_id = $2)
+      ORDER BY CASE WHEN cr.lesson_id IS NULL THEN 0 ELSE 1 END, cr.created_at DESC
+      `,
+      [courseId, lessonId]
+    );
+
+    res.json({
+      resources: resources.rows,
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching course resources', error: error.message });
+  }
+};
+
+export const createCourseResource = async (req, res) => {
+  const { courseId } = req.params;
+  const userId = req.user.id;
+  const role = req.user.role;
+  const { title, description = '', resourceUrl, resourceType = 'link', fileName = '', lessonId = null } = req.body;
+
+  if (!['admin', 'instructor'].includes(role)) {
+    return res.status(403).json({ message: 'Only instructors and admins can add resources' });
+  }
+
+  if (!title || !resourceUrl) {
+    return res.status(400).json({ message: 'title and resourceUrl are required' });
+  }
+
+  try {
+    const lessonIdValue = parseOptionalLessonId(lessonId);
+    const created = await pool.query(
+      `
+      INSERT INTO course_resources
+        (course_id, lesson_id, title, description, resource_type, resource_url, file_name, uploaded_by)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING *
+      `,
+      [courseId, lessonIdValue, title.trim(), description, resourceType, resourceUrl.trim(), fileName || null, userId]
+    );
+
+    res.status(201).json({
+      message: 'Resource added successfully',
+      resource: created.rows[0],
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error creating resource', error: error.message });
+  }
+};
+
+export const getCourseDiscussions = async (req, res) => {
+  const { courseId } = req.params;
+  const lessonId = parseOptionalLessonId(req.query.lessonId);
+
+  try {
+    const threadsRes = await pool.query(
+      `
+      SELECT
+        t.*,
+        u.first_name,
+        u.last_name,
+        COALESCE(COUNT(r.id), 0)::int AS reply_count
+      FROM discussion_threads t
+      LEFT JOIN users u ON u.id = t.user_id
+      LEFT JOIN discussion_replies r ON r.thread_id = t.id
+      WHERE t.course_id = $1
+        AND ($2::int IS NULL OR t.lesson_id IS NULL OR t.lesson_id = $2)
+      GROUP BY t.id, u.first_name, u.last_name
+      ORDER BY t.is_answered DESC, t.updated_at DESC, t.created_at DESC
+      `,
+      [courseId, lessonId]
+    );
+
+    const threadIds = threadsRes.rows.map((thread) => thread.id);
+    let repliesByThread = {};
+
+    if (threadIds.length > 0) {
+      const repliesRes = await pool.query(
+        `
+        SELECT
+          r.*,
+          u.first_name,
+          u.last_name
+        FROM discussion_replies r
+        LEFT JOIN users u ON u.id = r.user_id
+        WHERE r.thread_id = ANY($1::int[])
+        ORDER BY r.created_at ASC
+        `,
+        [threadIds]
+      );
+      repliesByThread = groupRepliesByThread(repliesRes.rows);
+    }
+
+    const threads = threadsRes.rows.map((thread) => ({
+      ...thread,
+      replies: repliesByThread[thread.id] || [],
+    }));
+
+    res.json({ threads });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching discussions', error: error.message });
+  }
+};
+
+export const createCourseDiscussion = async (req, res) => {
+  const { courseId } = req.params;
+  const userId = req.user.id;
+  const { title, body, lessonId = null } = req.body;
+
+  if (!body || !body.trim()) {
+    return res.status(400).json({ message: 'Discussion body is required' });
+  }
+
+  try {
+    const lessonIdValue = parseOptionalLessonId(lessonId);
+    const discussionTitle = (title && title.trim()) || 'Course discussion';
+
+    const created = await pool.query(
+      `
+      INSERT INTO discussion_threads
+        (course_id, lesson_id, user_id, title, body)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *
+      `,
+      [courseId, lessonIdValue, userId, discussionTitle, body.trim()]
+    );
+
+    res.status(201).json({
+      message: 'Discussion posted successfully',
+      thread: created.rows[0],
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error creating discussion', error: error.message });
+  }
+};
+
+export const createDiscussionReply = async (req, res) => {
+  const { courseId, threadId } = req.params;
+  const userId = req.user.id;
+  const { body } = req.body;
+
+  if (!body || !body.trim()) {
+    return res.status(400).json({ message: 'Reply body is required' });
+  }
+
+  try {
+    const threadRes = await pool.query(
+      'SELECT * FROM discussion_threads WHERE id = $1 AND course_id = $2 LIMIT 1',
+      [threadId, courseId]
+    );
+
+    if (threadRes.rows.length === 0) {
+      return res.status(404).json({ message: 'Discussion thread not found' });
+    }
+
+    const reply = await pool.query(
+      `
+      INSERT INTO discussion_replies (thread_id, user_id, body)
+      VALUES ($1, $2, $3)
+      RETURNING *
+      `,
+      [threadId, userId, body.trim()]
+    );
+
+    await pool.query(
+      'UPDATE discussion_threads SET updated_at = CURRENT_TIMESTAMP WHERE id = $1',
+      [threadId]
+    );
+
+    res.status(201).json({
+      message: 'Reply posted successfully',
+      reply: reply.rows[0],
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error creating reply', error: error.message });
+  }
+};
+
+export const resolveDiscussionThread = async (req, res) => {
+  const { courseId, threadId } = req.params;
+  const { replyId = null } = req.body;
+  const role = req.user.role;
+
+  if (!['admin', 'instructor'].includes(role)) {
+    return res.status(403).json({ message: 'Only instructors and admins can mark answers' });
+  }
+
+  try {
+    const threadRes = await pool.query(
+      'SELECT * FROM discussion_threads WHERE id = $1 AND course_id = $2 LIMIT 1',
+      [threadId, courseId]
+    );
+
+    if (threadRes.rows.length === 0) {
+      return res.status(404).json({ message: 'Discussion thread not found' });
+    }
+
+    const replyIdValue = parseOptionalLessonId(replyId);
+
+    if (replyIdValue) {
+      const replyRes = await pool.query(
+        'SELECT * FROM discussion_replies WHERE id = $1 AND thread_id = $2 LIMIT 1',
+        [replyIdValue, threadId]
+      );
+      if (replyRes.rows.length === 0) {
+        return res.status(404).json({ message: 'Reply not found for this thread' });
+      }
+
+      await pool.query(
+        'UPDATE discussion_replies SET is_solution = TRUE, updated_at = CURRENT_TIMESTAMP WHERE id = $1',
+        [replyIdValue]
+      );
+    }
+
+    await pool.query(
+      `
+      UPDATE discussion_threads
+      SET
+        is_answered = TRUE,
+        answered_reply_id = COALESCE($3, answered_reply_id),
+        resolved_by = $1,
+        resolved_at = CURRENT_TIMESTAMP,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = $2
+      `,
+      [req.user.id, threadId, replyIdValue]
+    );
+
+    res.json({ message: 'Discussion marked as answered' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error resolving discussion', error: error.message });
   }
 };
 

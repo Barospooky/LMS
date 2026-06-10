@@ -4,6 +4,9 @@ const AUTH_ENDPOINTS = new Set([
   '/api/auth/login',
   '/api/auth/signup',
   '/api/auth/google',
+  '/api/auth/forgot-password',
+  '/api/auth/validate-token',
+  '/api/auth/reset-password',
   '/api/auth/refresh',
   '/api/auth/logout',
 ]);

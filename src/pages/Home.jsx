@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   Sparkles, GraduationCap, PlayCircle, BookOpen, Layers,
@@ -98,9 +98,23 @@ const FAQ_DATA = [
   },
 ];
 
+const getPasswordStrength = (password = '') => {
+  let score = 0;
+  if (password.length >= 8) score += 1;
+  if (/[A-Z]/.test(password)) score += 1;
+  if (/[0-9]/.test(password)) score += 1;
+  if (/[^A-Za-z0-9]/.test(password)) score += 1;
+
+  if (!password) return { label: 'Password strength', className: 'empty', score: 0 };
+  if (score <= 1) return { label: 'Weak password', className: 'weak', score: 1 };
+  if (score <= 3) return { label: 'Medium password', className: 'medium', score: 2 };
+  return { label: 'Strong password', className: 'strong', score: 3 };
+};
+
 const Home = () => {
   const navigate = useNavigate();
-  const { login, signup, googleLogin } = useAuth();
+  const location = useLocation();
+  const { login, signup, googleLogin, forgotPassword, validateResetToken, resetPassword } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authTab, setAuthTab] = useState('login');
   const [error, setError] = useState('');
@@ -108,6 +122,11 @@ const Home = () => {
   const [googleReady, setGoogleReady] = useState(false);
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [signupData, setSignupData] = useState({ firstName: '', lastName: '', email: '', password: '' });
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [resetData, setResetData] = useState({ token: '', password: '', confirmPassword: '' });
+  const [resetNotice, setResetNotice] = useState('');
+  const [devResetUrl, setDevResetUrl] = useState('');
+  const [resetTokenStatus, setResetTokenStatus] = useState('idle');
   const [openFaq, setOpenFaq] = useState(null);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
@@ -183,6 +202,60 @@ const Home = () => {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const resetToken = params.get('token');
+
+    if (location.pathname === '/signin') {
+      setAuthTab('login');
+      setShowAuthModal(true);
+      return;
+    }
+
+    if (location.pathname === '/forgot-password') {
+      setAuthTab('forgot');
+      setShowAuthModal(true);
+      return;
+    }
+
+    if (location.pathname !== '/reset-password') return;
+
+    setShowAuthModal(true);
+    setAuthTab('reset');
+    setError('');
+    setResetNotice('');
+
+    if (!resetToken) {
+      setResetTokenStatus('invalid');
+      setError('Reset link is invalid or expired. Please request a new password reset link.');
+      return;
+    }
+
+    let cancelled = false;
+    setResetTokenStatus('checking');
+    setResetData({ token: resetToken, password: '', confirmPassword: '' });
+
+    validateResetToken(resetToken)
+      .then((data) => {
+        if (cancelled) return;
+        if (data.valid) {
+          setResetTokenStatus('valid');
+        } else {
+          setResetTokenStatus('invalid');
+          setError('Reset link is invalid or expired. Please request a new password reset link.');
+        }
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setResetTokenStatus('invalid');
+        setError(err.message || 'Reset link is invalid or expired. Please request a new password reset link.');
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [location.pathname, location.search, validateResetToken]);
 
   useEffect(() => {
     if (!showAuthModal) return;
@@ -285,12 +358,16 @@ const Home = () => {
   const switchTab = (tab) => {
     setAuthTab(tab);
     setError('');
+    setResetNotice('');
+    setDevResetUrl('');
+    setFieldErrors({});
   };
 
   const openAuth = (tab = 'login') => {
     setAuthTab(tab);
     setShowAuthModal(true);
     setError('');
+    setDevResetUrl('');
   };
 
   const handleLoginChange = (field, value) => {
@@ -307,8 +384,85 @@ const Home = () => {
     }
   };
 
-  const handleForgotPassword = () => {
-    setError('A password reset notification has been sent. Please check your inbox or contact support@amplepro.in.');
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setError('');
+    setResetNotice('');
+    setDevResetUrl('');
+
+    const email = forgotEmail.trim() || loginData.email.trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email) {
+      setFieldErrors({ forgotEmail: 'Email is required' });
+      return;
+    }
+    if (!emailRegex.test(email)) {
+      setFieldErrors({ forgotEmail: 'Please enter a valid email address' });
+      return;
+    }
+
+    setFieldErrors({});
+    setLoading(true);
+
+    try {
+      const data = await forgotPassword({ email });
+      setResetNotice(data.message || "If this email is registered, you'll receive a reset link shortly. Check your inbox.");
+      if (data.resetUrl) {
+        setDevResetUrl(data.resetUrl);
+      }
+    } catch (err) {
+      setError(err.message || 'Password reset request failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    setError('');
+    setResetNotice('');
+
+    const errors = {};
+    if (!resetData.token.trim()) {
+      errors.resetToken = 'Reset token is required';
+    }
+    if (!resetData.password.trim()) {
+      errors.resetPassword = 'New password is required';
+    } else if (resetData.password.length < 6) {
+      errors.resetPassword = 'Password must be at least 6 characters';
+    }
+    if (!resetData.confirmPassword.trim()) {
+      errors.confirmPassword = 'Please confirm your new password';
+    } else if (resetData.confirmPassword !== resetData.password) {
+      errors.confirmPassword = 'Passwords do not match';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      return;
+    }
+
+    setFieldErrors({});
+    setLoading(true);
+
+    try {
+      const data = await resetPassword({
+        token: resetData.token.trim(),
+        new_password: resetData.password,
+      });
+      setResetNotice(data.message || 'Password reset successfully.');
+      setResetData({ token: '', password: '', confirmPassword: '' });
+      setLoginData((current) => ({ ...current, password: '' }));
+      setResetTokenStatus('idle');
+      window.setTimeout(() => {
+        navigate('/signin');
+        setAuthTab('login');
+      }, 3000);
+    } catch (err) {
+      setError(err.message || 'Password reset failed');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLogin = async (e) => {
@@ -416,6 +570,8 @@ const Home = () => {
     setOpenFaq(openFaq === index ? null : index);
   };
 
+  const passwordStrength = getPasswordStrength(resetData.password);
+
   return (
     <div className="auth-page" style={{ overflowY: 'auto' }}>
       {/* Header */}
@@ -432,7 +588,7 @@ const Home = () => {
           <a href="#about" className="btn-text" style={{ textDecoration: 'none' }}>About</a>
           <a href="#faq" className="btn-text" style={{ textDecoration: 'none' }}>FAQ</a>
           <a href="#contact" className="btn-text" style={{ textDecoration: 'none' }}>Contact</a>
-          <button className="btn-text" style={{ cursor: 'pointer', outline: 'none' }} onClick={() => openAuth('login')} aria-label="Sign in to your account">Sign In</button>
+          <button className="btn-text" style={{ cursor: 'pointer', outline: 'none' }} onClick={() => navigate('/signin')} aria-label="Sign in to your account">Sign In</button>
           <button ref={btnGetStarted} className="btn-primary magnetic" onClick={() => openAuth('signup')} aria-label="Create a new account">Get Started</button>
         </div>
       </nav>
@@ -736,7 +892,7 @@ const Home = () => {
                 <li><a href="#courses">Courses</a></li>
                 <li><a href="#faq">FAQ</a></li>
                 <li><a href="#" onClick={(e) => { e.preventDefault(); openAuth('signup'); }}>Get Started</a></li>
-                <li><a href="#" onClick={(e) => { e.preventDefault(); openAuth('login'); }}>Sign In</a></li>
+                <li><a href="/signin" onClick={(e) => { e.preventDefault(); navigate('/signin'); }}>Sign In</a></li>
               </ul>
             </div>
 
@@ -774,28 +930,35 @@ const Home = () => {
       {/* Glassmorphic Auth Modal */}
       {showAuthModal && (
         <div className="modal-overlay" onClick={() => setShowAuthModal(false)}>
-          <div className="modal-content auth-modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className={`modal-content auth-modal-content ${authTab === 'login' ? 'auth-modal-login' : 'auth-modal-signup'}`} onClick={(e) => e.stopPropagation()}>
             <button className="modal-close-btn" onClick={() => setShowAuthModal(false)} aria-label="Close authentication modal">&times;</button>
             
             <div className="auth-container">
               <div className="auth-card">
                 {error && <div className="auth-error" role="alert">{error}</div>}
+                {resetNotice && <div className="auth-success" role="status">{resetNotice}</div>}
+                {devResetUrl && (
+                  <div className="auth-dev-reset" role="note">
+                    <span>Development reset link:</span>
+                    <a href={devResetUrl}>Open reset page</a>
+                  </div>
+                )}
 
                 {authTab === 'login' && (
                   <form className="auth-form active" onSubmit={handleLogin} noValidate>
                     <div className="form-header">
-                      <h2 className="text-serif" style={{ fontSize: '28px', marginBottom: '8px' }}>Welcome back</h2>
-                      <p style={{ fontSize: '13px' }}>Continue your learning journey and access your courses.</p>
+                      <h2 className="text-serif">Welcome back</h2>
+                      <p>Access your courses and continue learning.</p>
                     </div>
                     <div className="input-group">
-                      <label htmlFor="login-email" className="auth-label">Email Address <span className="required-star">*</span></label>
+                      <label htmlFor="login-email" className="auth-label">Email <span className="required-star">*</span></label>
                       <input
                         id="login-email"
                         type="email"
                         placeholder="Enter your email address"
                         value={loginData.email}
                         onChange={(e) => handleLoginChange('email', e.target.value)}
-                        style={{ padding: '14px 16px', borderRadius: '14px', borderColor: fieldErrors.email ? 'var(--danger)' : '' }}
+                        style={{ borderColor: fieldErrors.email ? 'var(--danger)' : '' }}
                         aria-label="Email address"
                         aria-invalid={!!fieldErrors.email}
                       />
@@ -810,7 +973,7 @@ const Home = () => {
                           placeholder="Enter your password"
                           value={loginData.password}
                           onChange={(e) => handleLoginChange('password', e.target.value)}
-                          style={{ padding: '14px 44px 14px 16px', borderRadius: '14px', width: '100%', borderColor: fieldErrors.password ? 'var(--danger)' : '' }}
+                          style={{ width: '100%', borderColor: fieldErrors.password ? 'var(--danger)' : '' }}
                           aria-label="Password"
                           aria-invalid={!!fieldErrors.password}
                         />
@@ -839,19 +1002,19 @@ const Home = () => {
                       </div>
                       {fieldErrors.password && <div className="field-error" style={{ color: 'var(--danger)', fontSize: '12px', marginTop: '4px', textAlign: 'left' }}>{fieldErrors.password}</div>}
                     </div>
-                    
-                    <div className="forgot-password-container" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '-4px', marginBottom: '14px' }}>
-                      <button 
-                        type="button" 
-                        className="forgot-password-btn" 
-                        onClick={handleForgotPassword} 
-                        style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: '13px', cursor: 'pointer', padding: 0, fontWeight: '600' }}
+                    <div className="forgot-password-container">
+                      <button
+                        type="button"
+                        className="forgot-password-btn"
+                        onClick={() => {
+                          setForgotEmail(loginData.email);
+                          navigate('/forgot-password');
+                        }}
                       >
-                        Forgot Password?
+                        Forgot password?
                       </button>
                     </div>
-
-                    <button type="submit" className="btn-primary auth-submit" disabled={loading} style={{ padding: '14px', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                    <button type="submit" className="btn-primary auth-submit" disabled={loading} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                       <span>{loading ? 'Signing In...' : 'Sign In'}</span>
                       {loading && <div className="spinner"></div>}
                     </button>
@@ -874,11 +1037,128 @@ const Home = () => {
                   </form>
                 )}
 
+                {authTab === 'forgot' && (
+                  <form className="auth-form active" onSubmit={handleForgotPassword} noValidate>
+                    <div className="form-header">
+                      <h2 className="text-serif">Reset password</h2>
+                      <p>Enter your email and we&apos;ll prepare a secure reset link.</p>
+                    </div>
+
+                    <div className="input-group">
+                      <label htmlFor="forgot-email" className="auth-label">Email <span className="required-star">*</span></label>
+                      <input
+                        id="forgot-email"
+                        type="email"
+                        placeholder="Enter your email address"
+                        value={forgotEmail}
+                        onChange={(e) => {
+                          setForgotEmail(e.target.value);
+                          if (fieldErrors.forgotEmail) {
+                            setFieldErrors({ ...fieldErrors, forgotEmail: '' });
+                          }
+                        }}
+                        style={{ borderColor: fieldErrors.forgotEmail ? 'var(--danger)' : '' }}
+                        aria-label="Reset email address"
+                        aria-invalid={!!fieldErrors.forgotEmail}
+                      />
+                      {fieldErrors.forgotEmail && <div className="field-error" style={{ color: 'var(--danger)', fontSize: '12px', marginTop: '4px', textAlign: 'left' }}>{fieldErrors.forgotEmail}</div>}
+                    </div>
+
+                    <button type="submit" className="btn-primary auth-submit" disabled={loading} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                      <span>{loading ? 'Preparing...' : 'Send reset link'}</span>
+                      {loading && <div className="spinner"></div>}
+                    </button>
+
+                    <div className="auth-switch">
+                      Remembered your password?{' '}
+                      <button type="button" className="auth-switch-btn" onClick={() => navigate('/signin')}>
+                        Sign in
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {authTab === 'reset' && (
+                  <form className="auth-form active" onSubmit={handleResetPassword} noValidate>
+                    <div className="form-header">
+                      <h2 className="text-serif">New password</h2>
+                      <p>Choose a new password for your Amplepro account.</p>
+                    </div>
+
+                    {resetTokenStatus === 'checking' && (
+                      <div className="auth-success" role="status">Checking reset link...</div>
+                    )}
+
+                    <div className="input-group">
+                      <label htmlFor="reset-password" className="auth-label">New password <span className="required-star">*</span></label>
+                      <input
+                        id="reset-password"
+                        type="password"
+                        placeholder="Enter new password"
+                        value={resetData.password}
+                        onChange={(e) => {
+                          setResetData({ ...resetData, password: e.target.value });
+                          if (fieldErrors.resetPassword) {
+                            setFieldErrors({ ...fieldErrors, resetPassword: '' });
+                          }
+                        }}
+                        style={{ borderColor: fieldErrors.resetPassword ? 'var(--danger)' : '' }}
+                        aria-label="New password"
+                        aria-invalid={!!fieldErrors.resetPassword}
+                        disabled={resetTokenStatus !== 'valid'}
+                      />
+                      {fieldErrors.resetPassword && <div className="field-error" style={{ color: 'var(--danger)', fontSize: '12px', marginTop: '4px', textAlign: 'left' }}>{fieldErrors.resetPassword}</div>}
+                    </div>
+
+                    <div className={`password-strength ${passwordStrength.className}`}>
+                      <span>{passwordStrength.label}</span>
+                      <div aria-hidden="true">
+                        <i />
+                        <i />
+                        <i />
+                      </div>
+                    </div>
+
+                    <div className="input-group">
+                      <label htmlFor="reset-confirm-password" className="auth-label">Confirm new password <span className="required-star">*</span></label>
+                      <input
+                        id="reset-confirm-password"
+                        type="password"
+                        placeholder="Confirm new password"
+                        value={resetData.confirmPassword}
+                        onChange={(e) => {
+                          setResetData({ ...resetData, confirmPassword: e.target.value });
+                          if (fieldErrors.confirmPassword) {
+                            setFieldErrors({ ...fieldErrors, confirmPassword: '' });
+                          }
+                        }}
+                        style={{ borderColor: fieldErrors.confirmPassword ? 'var(--danger)' : '' }}
+                        aria-label="Confirm new password"
+                        aria-invalid={!!fieldErrors.confirmPassword}
+                        disabled={resetTokenStatus !== 'valid'}
+                      />
+                      {fieldErrors.confirmPassword && <div className="field-error" style={{ color: 'var(--danger)', fontSize: '12px', marginTop: '4px', textAlign: 'left' }}>{fieldErrors.confirmPassword}</div>}
+                    </div>
+
+                    <button type="submit" className="btn-primary auth-submit" disabled={loading || resetTokenStatus !== 'valid'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                      <span>{loading ? 'Resetting...' : 'Set new password'}</span>
+                      {loading && <div className="spinner"></div>}
+                    </button>
+
+                    <div className="auth-switch">
+                      Back to{' '}
+                      <button type="button" className="auth-switch-btn" onClick={() => navigate('/signin')}>
+                        Sign in
+                      </button>
+                    </div>
+                  </form>
+                )}
+
                 {authTab === 'signup' && (
                   <form className="auth-form active" onSubmit={handleSignup} noValidate>
                     <div className="form-header">
-                      <h2 className="text-serif" style={{ fontSize: '28px', marginBottom: '8px' }}>Start learning</h2>
-                      <p style={{ fontSize: '13px' }}>Create an account and start learning today.</p>
+                      <h2 className="text-serif">Start learning</h2>
+                      <p>Create an account and start learning today.</p>
                     </div>
                     <div className="input-row" style={{ gap: '10px', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
                       <div className="input-group">
@@ -889,7 +1169,7 @@ const Home = () => {
                           placeholder="First Name"
                           value={signupData.firstName}
                           onChange={(e) => handleSignupChange('firstName', e.target.value)}
-                          style={{ padding: '14px 16px', borderRadius: '14px', borderColor: fieldErrors.firstName ? 'var(--danger)' : '' }}
+                          style={{ borderColor: fieldErrors.firstName ? 'var(--danger)' : '' }}
                           aria-label="First name"
                           aria-invalid={!!fieldErrors.firstName}
                         />
@@ -903,7 +1183,7 @@ const Home = () => {
                           placeholder="Last Name"
                           value={signupData.lastName}
                           onChange={(e) => handleSignupChange('lastName', e.target.value)}
-                          style={{ padding: '14px 16px', borderRadius: '14px', borderColor: fieldErrors.lastName ? 'var(--danger)' : '' }}
+                          style={{ borderColor: fieldErrors.lastName ? 'var(--danger)' : '' }}
                           aria-label="Last name"
                           aria-invalid={!!fieldErrors.lastName}
                         />
@@ -918,7 +1198,7 @@ const Home = () => {
                         placeholder="Enter your email"
                         value={signupData.email}
                         onChange={(e) => handleSignupChange('email', e.target.value)}
-                        style={{ padding: '14px 16px', borderRadius: '14px', borderColor: fieldErrors.email ? 'var(--danger)' : '' }}
+                        style={{ borderColor: fieldErrors.email ? 'var(--danger)' : '' }}
                         aria-label="Email address"
                         aria-invalid={!!fieldErrors.email}
                       />
@@ -933,7 +1213,7 @@ const Home = () => {
                           placeholder="Create Password"
                           value={signupData.password}
                           onChange={(e) => handleSignupChange('password', e.target.value)}
-                          style={{ padding: '14px 44px 14px 16px', borderRadius: '14px', width: '100%', borderColor: fieldErrors.password ? 'var(--danger)' : '' }}
+                          style={{ width: '100%', borderColor: fieldErrors.password ? 'var(--danger)' : '' }}
                           aria-label="Create password"
                           aria-invalid={!!fieldErrors.password}
                         />
@@ -962,7 +1242,7 @@ const Home = () => {
                       </div>
                       {fieldErrors.password && <div className="field-error" style={{ color: 'var(--danger)', fontSize: '12px', marginTop: '4px', textAlign: 'left' }}>{fieldErrors.password}</div>}
                     </div>
-                    <button type="submit" className="btn-primary auth-submit" disabled={loading} style={{ padding: '14px', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                    <button type="submit" className="btn-primary auth-submit" disabled={loading} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                       <span>{loading ? 'Creating Account...' : 'Create Account'}</span>
                       {loading && <div className="spinner"></div>}
                     </button>

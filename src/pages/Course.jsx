@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { jsPDF } from 'jspdf';
+import { FileText, Link2, MessageCircle, Plus, Send, Download, CheckCircle2, BadgeInfo } from 'lucide-react';
 import '../styles/main.css';
 import '../styles/course.css';
 import Reveal from '../components/Reveal';
@@ -154,6 +155,13 @@ const Course = () => {
   const [isDownloadingCertificate, setIsDownloadingCertificate] = useState(false);
   const [cleanedSignatureUrl, setCleanedSignatureUrl] = useState(null);
   const [videoCompleted, setVideoCompleted] = useState(false);
+  const [courseResources, setCourseResources] = useState([]);
+  const [resourceForm, setResourceForm] = useState({ title: '', resourceUrl: '', resourceType: 'link', description: '' });
+  const [resourceSaving, setResourceSaving] = useState(false);
+  const [discussionThreads, setDiscussionThreads] = useState([]);
+  const [discussionForm, setDiscussionForm] = useState({ title: '', body: '' });
+  const [replyDrafts, setReplyDrafts] = useState({});
+  const [discussionSaving, setDiscussionSaving] = useState(false);
 
   useEffect(() => {
     const loadAndCleanSignature = async () => {
@@ -680,6 +688,21 @@ const Course = () => {
     setCourseProgress(nextState);
   }, [courseId, currentLesson]);
 
+  useEffect(() => {
+    if (!course || !currentLesson) return;
+    refreshCommunityData();
+  }, [courseId, currentLesson?.id]);
+
+  useEffect(() => {
+    if (!course || !currentLesson) return;
+    if (activeTab === 'resources') {
+      fetchCourseResources();
+    }
+    if (activeTab === 'discussion') {
+      fetchCourseDiscussions();
+    }
+  }, [activeTab, courseId, currentLesson?.id]);
+
   const fetchCourseDetails = async () => {
     try {
       const response = await apiFetch(`/api/courses/${courseId}`);
@@ -739,6 +762,139 @@ const Course = () => {
       }
     } catch (error) {
       console.error('Error fetching certificate status:', error);
+    }
+  };
+
+  const fetchCourseResources = async () => {
+    try {
+      const lessonQuery = currentLesson?.id ? `?lessonId=${currentLesson.id}` : '';
+      const response = await apiFetch(`/api/courses/${courseId}/resources${lessonQuery}`);
+      const data = await response.json();
+      if (response.ok) {
+        setCourseResources(Array.isArray(data.resources) ? data.resources : []);
+      }
+    } catch (error) {
+      console.error('Error fetching course resources:', error);
+    }
+  };
+
+  const fetchCourseDiscussions = async () => {
+    try {
+      const lessonQuery = currentLesson?.id ? `?lessonId=${currentLesson.id}` : '';
+      const response = await apiFetch(`/api/courses/${courseId}/discussions${lessonQuery}`);
+      const data = await response.json();
+      if (response.ok) {
+        setDiscussionThreads(Array.isArray(data.threads) ? data.threads : []);
+      }
+    } catch (error) {
+      console.error('Error fetching course discussions:', error);
+    }
+  };
+
+  const refreshCommunityData = async () => {
+    await Promise.all([fetchCourseResources(), fetchCourseDiscussions()]);
+  };
+
+  const handleResourceChange = (field, value) => {
+    setResourceForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleCreateResource = async (event) => {
+    event.preventDefault();
+    if (!resourceForm.title.trim() || !resourceForm.resourceUrl.trim()) return;
+
+    try {
+      setResourceSaving(true);
+      const response = await apiFetch(`/api/courses/${courseId}/resources`, {
+        method: 'POST',
+        body: JSON.stringify({
+          ...resourceForm,
+          lessonId: currentLesson?.id || null,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Unable to add resource');
+      }
+
+      setResourceForm({ title: '', resourceUrl: '', resourceType: 'link', description: '' });
+      await fetchCourseResources();
+    } catch (error) {
+      alert(error.message || 'Unable to add resource');
+    } finally {
+      setResourceSaving(false);
+    }
+  };
+
+  const handleDiscussionChange = (field, value) => {
+    setDiscussionForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleCreateDiscussion = async (event) => {
+    event.preventDefault();
+    if (!discussionForm.body.trim()) return;
+
+    try {
+      setDiscussionSaving(true);
+      const response = await apiFetch(`/api/courses/${courseId}/discussions`, {
+        method: 'POST',
+        body: JSON.stringify({
+          ...discussionForm,
+          lessonId: currentLesson?.id || null,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Unable to post discussion');
+      }
+
+      setDiscussionForm({ title: '', body: '' });
+      await fetchCourseDiscussions();
+    } catch (error) {
+      alert(error.message || 'Unable to post discussion');
+    } finally {
+      setDiscussionSaving(false);
+    }
+  };
+
+  const handleReplyChange = (threadId, value) => {
+    setReplyDrafts((prev) => ({ ...prev, [threadId]: value }));
+  };
+
+  const handleReplySubmit = async (threadId) => {
+    const body = (replyDrafts[threadId] || '').trim();
+    if (!body) return;
+
+    try {
+      const response = await apiFetch(`/api/courses/${courseId}/discussions/${threadId}/replies`, {
+        method: 'POST',
+        body: JSON.stringify({ body }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Unable to post reply');
+      }
+
+      setReplyDrafts((prev) => ({ ...prev, [threadId]: '' }));
+      await fetchCourseDiscussions();
+    } catch (error) {
+      alert(error.message || 'Unable to post reply');
+    }
+  };
+
+  const handleMarkAnswered = async (threadId, replyId = null) => {
+    try {
+      const response = await apiFetch(`/api/courses/${courseId}/discussions/${threadId}/resolve`, {
+        method: 'PATCH',
+        body: JSON.stringify({ replyId }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Unable to mark discussion as answered');
+      }
+      await fetchCourseDiscussions();
+    } catch (error) {
+      alert(error.message || 'Unable to mark discussion as answered');
     }
   };
 
@@ -936,6 +1092,220 @@ const Course = () => {
   const canAccessQuiz = videoCompleted || isCurrentLessonComplete;
   const isFinalLesson = course.lessons[course.lessons.length - 1]?.id === currentLesson.id;
   const shouldShowCertificateBlock = courseProgress.certificateEarned || certificateStatus.earned;
+  const canManageCourseContent = user?.role === 'admin' || user?.role === 'instructor';
+
+  const renderResourcePanel = () => (
+    <div className="accordion-body">
+      <div className="community-copy">
+        <div>
+          <h4 className="community-title">Course resources</h4>
+          <p className="text-secondary">Quick links, notes, and downloads attached to this lesson.</p>
+        </div>
+        <div className="resource-summary">
+          <BadgeInfo size={16} />
+          <span>{courseResources.length} resource{courseResources.length === 1 ? '' : 's'}</span>
+        </div>
+      </div>
+
+      {canManageCourseContent && (
+        <form className="community-form" onSubmit={handleCreateResource}>
+          <div className="community-form-grid">
+            <label className="community-field">
+              <span>Title</span>
+              <input
+                type="text"
+                value={resourceForm.title}
+                onChange={(event) => handleResourceChange('title', event.target.value)}
+                placeholder="Lesson notes"
+              />
+            </label>
+            <label className="community-field">
+              <span>Type</span>
+              <select
+                value={resourceForm.resourceType}
+                onChange={(event) => handleResourceChange('resourceType', event.target.value)}
+              >
+                <option value="link">Link</option>
+                <option value="pdf">PDF</option>
+                <option value="slides">Slides</option>
+                <option value="video">Video</option>
+                <option value="file">File</option>
+              </select>
+            </label>
+            <label className="community-field community-field-wide">
+              <span>Resource URL</span>
+              <input
+                type="url"
+                value={resourceForm.resourceUrl}
+                onChange={(event) => handleResourceChange('resourceUrl', event.target.value)}
+                placeholder="https://..."
+              />
+            </label>
+            <label className="community-field community-field-wide">
+              <span>Description</span>
+              <textarea
+                rows="3"
+                value={resourceForm.description}
+                onChange={(event) => handleResourceChange('description', event.target.value)}
+                placeholder="Optional note for learners"
+              />
+            </label>
+          </div>
+          <div className="community-form-actions">
+            <button type="submit" className="btn-primary" disabled={resourceSaving}>
+              <Plus size={16} />
+              {resourceSaving ? 'Saving...' : 'Add Resource'}
+            </button>
+          </div>
+        </form>
+      )}
+
+      <div className="resource-list">
+        {courseResources.length === 0 ? (
+          <div className="empty-community-state">
+            <FileText size={18} />
+            <p>No resources added for this lesson yet.</p>
+          </div>
+        ) : (
+          courseResources.map((resource) => (
+            <article key={resource.id} className="resource-item">
+              <div className="resource-item-icon">
+                {resource.resource_type === 'link' ? <Link2 size={18} /> : <FileText size={18} />}
+              </div>
+              <div className="resource-item-copy">
+                <div className="resource-item-topline">
+                  <strong>{resource.title}</strong>
+                  <span className="resource-type-pill">{resource.resource_type}</span>
+                </div>
+                <p>{resource.description || resource.file_name || 'Resource available for this lesson.'}</p>
+                {resource.lesson_title && <small>Attached to {resource.lesson_title}</small>}
+              </div>
+              <a className="resource-download-btn" href={resource.resource_url} target="_blank" rel="noreferrer">
+                <Download size={16} />
+                Open
+              </a>
+            </article>
+          ))
+        )}
+      </div>
+    </div>
+  );
+
+  const renderDiscussionPanel = () => (
+    <div className="accordion-body">
+      <div className="community-copy">
+        <div>
+          <h4 className="community-title">Lesson discussion</h4>
+          <p className="text-secondary">Ask questions and keep course conversations tied to this lesson.</p>
+        </div>
+        <div className="resource-summary">
+          <MessageCircle size={16} />
+          <span>{discussionThreads.length} thread{discussionThreads.length === 1 ? '' : 's'}</span>
+        </div>
+      </div>
+
+      <form className="community-form" onSubmit={handleCreateDiscussion}>
+        <div className="community-form-grid">
+          <label className="community-field community-field-wide">
+            <span>Topic</span>
+            <input
+              type="text"
+              value={discussionForm.title}
+              onChange={(event) => handleDiscussionChange('title', event.target.value)}
+              placeholder="Optional topic title"
+            />
+          </label>
+          <label className="community-field community-field-wide">
+            <span>Your question</span>
+            <textarea
+              rows="4"
+              value={discussionForm.body}
+              onChange={(event) => handleDiscussionChange('body', event.target.value)}
+              placeholder="What would you like to ask or discuss?"
+            />
+          </label>
+        </div>
+        <div className="community-form-actions">
+          <button type="submit" className="btn-primary" disabled={discussionSaving}>
+            <Send size={16} />
+            {discussionSaving ? 'Posting...' : 'Post Discussion'}
+          </button>
+        </div>
+      </form>
+
+      <div className="discussion-list">
+        {discussionThreads.length === 0 ? (
+          <div className="empty-community-state">
+            <MessageCircle size={18} />
+            <p>No discussion threads for this lesson yet.</p>
+          </div>
+        ) : (
+          discussionThreads.map((thread) => (
+            <article key={thread.id} className={`discussion-thread ${thread.is_answered ? 'answered' : ''}`}>
+              <div className="discussion-thread-head">
+                <div>
+                  <strong>{thread.title}</strong>
+                  <div className="discussion-meta">
+                    <span>{thread.first_name} {thread.last_name}</span>
+                    <span>|</span>
+                    <span>{new Date(thread.created_at).toLocaleDateString()}</span>
+                  </div>
+                </div>
+                <div className="discussion-tags">
+                  {thread.is_answered && (
+                    <span className="discussion-badge success">
+                      <CheckCircle2 size={12} />
+                      Answered
+                    </span>
+                  )}
+                  <span className="discussion-badge">{thread.reply_count} replies</span>
+                </div>
+              </div>
+              <p className="discussion-body">{thread.body}</p>
+
+              <div className="discussion-replies">
+                {thread.replies?.map((reply) => (
+                  <div key={reply.id} className={`discussion-reply ${reply.is_solution ? 'solution' : ''}`}>
+                    <div className="discussion-reply-meta">
+                      <strong>{reply.first_name} {reply.last_name}</strong>
+                      <span>{new Date(reply.created_at).toLocaleDateString()}</span>
+                      {reply.is_solution && <span className="discussion-badge success">Best answer</span>}
+                    </div>
+                    <p>{reply.body}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="discussion-reply-form">
+                <textarea
+                  rows="3"
+                  value={replyDrafts[thread.id] || ''}
+                  onChange={(event) => handleReplyChange(thread.id, event.target.value)}
+                  placeholder="Write a reply..."
+                />
+                <div className="community-form-actions">
+                  <button type="button" className="btn-outline" onClick={() => handleReplySubmit(thread.id)}>
+                    <Send size={14} />
+                    Reply
+                  </button>
+                  {canManageCourseContent && !thread.is_answered && thread.replies?.length > 0 && (
+                    <button
+                      type="button"
+                      className="btn-primary"
+                      onClick={() => handleMarkAnswered(thread.id, thread.replies[thread.replies.length - 1]?.id)}
+                    >
+                      <CheckCircle2 size={14} />
+                      Mark answered
+                    </button>
+                  )}
+                </div>
+              </div>
+            </article>
+          ))
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <div className="course-page">
@@ -1516,6 +1886,32 @@ const Course = () => {
                           <p>No quiz available for this lesson.</p>
                         )}
                       </div>
+                    </Reveal>
+                  )}
+                </div>
+
+                {/* Resources Accordion */}
+                <div className={`accordion-section ${activeTab === 'resources' ? 'open' : ''}`}>
+                  <button className="accordion-header" onClick={() => setActiveTab(activeTab === 'resources' ? null : 'resources')}>
+                    <span>Resources</span>
+                    <span className="accordion-icon">{activeTab === 'resources' ? '-' : '+'}</span>
+                  </button>
+                  {activeTab === 'resources' && (
+                    <Reveal delay="0.1s">
+                      {renderResourcePanel()}
+                    </Reveal>
+                  )}
+                </div>
+
+                {/* Discussion Accordion */}
+                <div className={`accordion-section ${activeTab === 'discussion' ? 'open' : ''}`}>
+                  <button className="accordion-header" onClick={() => setActiveTab(activeTab === 'discussion' ? null : 'discussion')}>
+                    <span>Discussion</span>
+                    <span className="accordion-icon">{activeTab === 'discussion' ? '-' : '+'}</span>
+                  </button>
+                  {activeTab === 'discussion' && (
+                    <Reveal delay="0.1s">
+                      {renderDiscussionPanel()}
                     </Reveal>
                   )}
                 </div>
