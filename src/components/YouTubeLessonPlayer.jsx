@@ -25,6 +25,15 @@ const extractVideoData = (url) => {
   return { videoId, startSeconds };
 };
 
+const isYouTubeUrl = (url = '') => {
+  if (!url) return false;
+  const value = String(url).trim();
+
+  return (
+    value.length === 11 && !value.includes('/') && !value.includes('?')
+  ) || value.includes('youtube.com') || value.includes('youtu.be/');
+};
+
 const loadYouTubeApi = () =>
   new Promise((resolve) => {
     if (window.YT?.Player) {
@@ -49,8 +58,11 @@ const loadYouTubeApi = () =>
 const YouTubeLessonPlayer = ({ videoUrl, title, onComplete }) => {
   const containerRef = useRef(null);
   const { videoId, startSeconds } = useMemo(() => extractVideoData(videoUrl), [videoUrl]);
+  const isYouTubeVideo = useMemo(() => isYouTubeUrl(videoUrl), [videoUrl]);
 
   useEffect(() => {
+    if (!isYouTubeVideo) return undefined;
+
     let mounted = true;
     let player = null;
 
@@ -86,7 +98,37 @@ const YouTubeLessonPlayer = ({ videoUrl, title, onComplete }) => {
       mounted = false;
       if (player?.destroy) player.destroy();
     };
-  }, [videoId, startSeconds, onComplete]);
+  }, [isYouTubeVideo, videoId, startSeconds, onComplete]);
+
+  if (!videoUrl) {
+    return (
+      <div className="video-frame-shell">
+        <div className="video-empty-state">
+          <strong>No video source added</strong>
+          <span>Add a YouTube link or upload a video from the lesson editor.</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isYouTubeVideo) {
+    return (
+      <div className="video-frame-shell">
+        <video
+          key={videoUrl}
+          className="video-frame lesson-native-video"
+          src={videoUrl}
+          title={title}
+          controls
+          controlsList="nodownload"
+          playsInline
+          onEnded={() => onComplete?.()}
+        >
+          Your browser does not support the video tag.
+        </video>
+      </div>
+    );
+  }
 
   return (
     <div className="video-frame-shell">

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, Edit3, Trash2, BookOpen, Layers, Video, Search, Upload, Link2, Image, Film } from 'lucide-react';
 import Reveal from '../../components/Reveal';
 import { formatCategoryLabel, formatInrCurrency, getCategoryOptions } from '../../utils/category';
@@ -43,6 +43,8 @@ const CourseManager = () => {
   const [lessonVideoPreview, setLessonVideoPreview] = useState('');
 
   const [pendingDelete, setPendingDelete] = useState(null);
+  const [notice, setNotice] = useState(null);
+  const noticeTimeoutRef = useRef(null);
 
   useEffect(() => {
     fetchCourses();
@@ -56,8 +58,22 @@ const CourseManager = () => {
       if (lessonVideoPreview?.startsWith('blob:')) {
         URL.revokeObjectURL(lessonVideoPreview);
       }
+      if (noticeTimeoutRef.current) {
+        clearTimeout(noticeTimeoutRef.current);
+      }
     };
   }, [courseThumbnailPreview, lessonVideoPreview]);
+
+  const showNotice = (message, type = 'success') => {
+    if (noticeTimeoutRef.current) {
+      clearTimeout(noticeTimeoutRef.current);
+    }
+
+    setNotice({ message, type });
+    noticeTimeoutRef.current = setTimeout(() => {
+      setNotice(null);
+    }, 3200);
+  };
 
   const fetchCourses = async () => {
     try {
@@ -83,10 +99,11 @@ const CourseManager = () => {
       if (response.ok) {
         setSelectedCourse(responseData);
       } else {
-        alert(responseData.message || 'Failed to fetch course details');
+        showNotice(responseData.message || 'Failed to fetch course details', 'error');
       }
     } catch (fetchError) {
       console.error(fetchError);
+      showNotice('Connection failed while loading course details', 'error');
     }
   };
 
@@ -158,7 +175,7 @@ const CourseManager = () => {
     const useMultipart = courseThumbnailMode === 'upload';
 
     if (useMultipart && !courseThumbnailFile) {
-      alert('Please choose a thumbnail image or switch back to URL mode.');
+      showNotice('Please choose a thumbnail image or switch back to URL mode.', 'warning');
       return;
     }
 
@@ -193,13 +210,13 @@ const CourseManager = () => {
         if (isEditingCourse && selectedCourse?.id === courseFormData.id) {
           fetchCourseDetails(courseFormData.id);
         }
-        alert(isEditingCourse ? 'Course updated successfully' : 'Course created successfully');
+        showNotice(isEditingCourse ? 'Course updated successfully' : 'Course created successfully');
       } else {
-        alert(responseData.message || 'Failed to save course');
+        showNotice(responseData.message || 'Failed to save course', 'error');
       }
     } catch (saveError) {
       console.error(saveError);
-      alert('Error saving course');
+      showNotice('Error saving course', 'error');
     }
   };
 
@@ -227,7 +244,7 @@ const CourseManager = () => {
 
       const responseData = await response.json();
       if (response.ok) {
-        alert(isCourseDelete ? 'Course deleted successfully' : 'Lesson deleted successfully');
+        showNotice(isCourseDelete ? 'Course deleted successfully' : 'Lesson deleted successfully');
         setPendingDelete(null);
         fetchCourses();
         if (isCourseDelete) {
@@ -238,11 +255,11 @@ const CourseManager = () => {
           fetchCourseDetails(selectedCourse.id);
         }
       } else {
-        alert(responseData.message || `Failed to delete ${pendingDelete.type}`);
+        showNotice(responseData.message || `Failed to delete ${pendingDelete.type}`, 'error');
       }
     } catch (deleteError) {
       console.error(deleteError);
-      alert(`Error deleting ${pendingDelete.type}`);
+      showNotice(`Error deleting ${pendingDelete.type}`, 'error');
     }
   };
 
@@ -273,7 +290,7 @@ const CourseManager = () => {
     const useMultipart = lessonVideoMode === 'upload';
 
     if (useMultipart && !lessonVideoFile) {
-      alert('Please choose a lesson video file or switch back to YouTube/link mode.');
+      showNotice('Please choose a lesson video file or switch back to YouTube/link mode.', 'warning');
       return;
     }
 
@@ -305,13 +322,13 @@ const CourseManager = () => {
         setShowLessonForm(false);
         resetLessonForm();
         fetchCourseDetails(selectedCourse.id);
-        alert(isEditingLesson ? 'Lesson updated successfully' : 'Lesson added successfully');
+        showNotice(isEditingLesson ? 'Lesson updated successfully' : 'Lesson added successfully');
       } else {
-        alert(responseData.message || 'Failed to save lesson');
+        showNotice(responseData.message || 'Failed to save lesson', 'error');
       }
     } catch (saveError) {
       console.error(saveError);
-      alert('Error saving lesson');
+      showNotice('Error saving lesson', 'error');
     }
   };
 
@@ -338,6 +355,16 @@ const CourseManager = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {notice && (
+        <div className={`admin-toast admin-toast-${notice.type}`} role="status" aria-live="polite">
+          <span className="admin-toast-dot" />
+          <span>{notice.message}</span>
+          <button type="button" onClick={() => setNotice(null)} aria-label="Dismiss notification">
+            &times;
+          </button>
+        </div>
+      )}
+
       <header className="admin-header">
         <Reveal>
           <div>
@@ -524,7 +551,15 @@ const CourseManager = () => {
       {showCourseForm && (
         <div className="modal-overlay">
           <div className="modal-content admin-modal-content course-modal" style={{ textAlign: 'left' }}>
-            <h2 className="text-serif" style={{ fontSize: '28px', marginBottom: '20px' }}>
+            <button
+              type="button"
+              className="admin-modal-close"
+              onClick={() => setShowCourseForm(false)}
+              aria-label="Close course settings"
+            >
+              &times;
+            </button>
+            <h2 className="text-serif admin-modal-title">
               {isEditingCourse ? 'Edit Course Settings' : 'Create New Course'}
             </h2>
             <form onSubmit={handleCourseSubmit}>
@@ -549,46 +584,45 @@ const CourseManager = () => {
                 />
               </div>
 
-              <div className="admin-grid-2">
-                <div className="admin-form-group">
-                  <label>Price (INR)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    required
-                    value={courseFormData.price}
-                    onChange={(event) => setCourseFormData({ ...courseFormData, price: event.target.value })}
-                    className="admin-input"
-                  />
+              <div className="course-settings-grid">
+                <div className="course-settings-fields">
+                  <div className="admin-form-group">
+                    <label>Price (INR)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      required
+                      value={courseFormData.price}
+                      onChange={(event) => setCourseFormData({ ...courseFormData, price: event.target.value })}
+                      className="admin-input"
+                    />
+                  </div>
+                  <div className="admin-form-group">
+                    <label>Category</label>
+                    <select
+                      value={courseFormData.category}
+                      onChange={(event) => setCourseFormData({ ...courseFormData, category: event.target.value })}
+                      className="admin-select"
+                    >
+                      {categoryOptions.map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="admin-form-group">
+                    <label>Difficulty</label>
+                    <select
+                      value={courseFormData.difficulty}
+                      onChange={(event) => setCourseFormData({ ...courseFormData, difficulty: event.target.value })}
+                      className="admin-select"
+                    >
+                      <option value="beginner">Beginner</option>
+                      <option value="intermediate">Intermediate</option>
+                      <option value="advanced">Advanced</option>
+                    </select>
+                  </div>
                 </div>
-                <div className="admin-form-group">
-                  <label>Difficulty</label>
-                  <select
-                    value={courseFormData.difficulty}
-                    onChange={(event) => setCourseFormData({ ...courseFormData, difficulty: event.target.value })}
-                    className="admin-select"
-                  >
-                    <option value="beginner">Beginner</option>
-                    <option value="intermediate">Intermediate</option>
-                    <option value="advanced">Advanced</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="admin-grid-2">
-                <div className="admin-form-group">
-                  <label>Category</label>
-                  <select
-                    value={courseFormData.category}
-                    onChange={(event) => setCourseFormData({ ...courseFormData, category: event.target.value })}
-                    className="admin-select"
-                  >
-                    {categoryOptions.map((option) => (
-                      <option key={option.value} value={option.value}>{option.label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="admin-form-group">
+                <div className="admin-form-group course-thumbnail-field">
                   <label>Thumbnail Source</label>
                   <div className="source-toggle">
                     <button
@@ -667,7 +701,15 @@ const CourseManager = () => {
       {showLessonForm && (
         <div className="modal-overlay">
           <div className="modal-content admin-modal-content lesson-modal" style={{ textAlign: 'left' }}>
-            <h2 className="text-serif" style={{ fontSize: '28px', marginBottom: '20px' }}>
+            <button
+              type="button"
+              className="admin-modal-close"
+              onClick={() => setShowLessonForm(false)}
+              aria-label="Close lesson settings"
+            >
+              &times;
+            </button>
+            <h2 className="text-serif admin-modal-title">
               {isEditingLesson ? 'Edit Lesson Parameters' : 'Add New Lesson to Syllabus'}
             </h2>
             <form onSubmit={handleLessonSubmit}>

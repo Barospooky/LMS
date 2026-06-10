@@ -936,6 +936,14 @@ const Course = () => {
         { id: 'ds_q4', type: 'voice', question: 'Practice: Say "Data Science and Artificial Intelligence" into the mic.', options: [], correct_answer: 'recorded', expected_pitch: 'C4' },
         { id: 'ds_q5', type: 'voice', question: 'Voice Pitch Check: Match the pitch E of the reference tone.', options: [], correct_answer: 'recorded', expected_pitch: 'E4' }
       ];
+    } else if (cat === 'music') {
+      return [
+        { id: 'music_q1', type: 'text', question: 'Why is warmup important before a music performance?', options: ['It prepares breath, timing, and tone control', 'It replaces practice completely', 'It removes the need for listening', 'It changes the course category'], correct_answer: 'It prepares breath, timing, and tone control' },
+        { id: 'music_q2', type: 'text', question: 'What does pitch matching help a learner improve?', options: ['Listening accuracy and note control', 'Payment verification', 'Course thumbnail quality', 'Database indexing'], correct_answer: 'Listening accuracy and note control' },
+        { id: 'music_q3', type: 'text', question: 'Which practice habit improves rhythm?', options: ['Using a steady count or metronome', 'Skipping repeated practice', 'Changing the video URL', 'Ignoring timing'], correct_answer: 'Using a steady count or metronome' },
+        { id: 'music_q4', type: 'voice', question: 'Practice: Hum or sing one comfortable steady note for three seconds.', options: [], correct_answer: 'recorded', expected_pitch: 'C4' },
+        { id: 'music_q5', type: 'voice', question: 'Voice Pitch Check: Repeat a short pitch pattern slowly and steadily.', options: [], correct_answer: 'recorded', expected_pitch: 'G4' }
+      ];
     } else {
       return [
         { id: 'mkt_q1', type: 'text', question: 'What does SEO stand for?', options: ['Search Engine Optimization', 'Social Engagement Operation', 'Structured Electronic Output', 'Site Evaluation Order'], correct_answer: 'Search Engine Optimization' },

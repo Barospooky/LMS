@@ -81,6 +81,83 @@
   min-width: 0;
 }
 
+.admin-toast {
+  position: fixed;
+  top: 20px;
+  right: 24px;
+  z-index: 11000;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(390px, calc(100vw - 32px));
+  min-height: 52px;
+  padding: 12px 14px 12px 18px;
+  border-radius: 8px;
+  background: rgba(255, 251, 245, 0.98);
+  border: 1px solid rgba(12, 52, 50, 0.12);
+  border-left: 4px solid var(--accent);
+  box-shadow: 0 12px 32px rgba(8, 32, 31, 0.14);
+  color: var(--text-main);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.4;
+  animation: adminToastIn 0.24s ease-out;
+}
+
+.admin-toast-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 4px rgba(0, 174, 177, 0.1);
+  flex-shrink: 0;
+}
+
+.admin-toast-error {
+  border-left-color: var(--danger);
+}
+
+.admin-toast-error .admin-toast-dot {
+  background: var(--danger);
+  box-shadow: 0 0 0 4px rgba(211, 47, 47, 0.1);
+}
+
+.admin-toast-warning {
+  border-left-color: #d9822b;
+}
+
+.admin-toast-warning .admin-toast-dot {
+  background: #d9822b;
+  box-shadow: 0 0 0 4px rgba(217, 130, 43, 0.12);
+}
+
+.admin-toast button {
+  border: 0;
+  background: transparent;
+  color: rgba(12, 52, 50, 0.5);
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  padding: 0;
+  margin-left: auto;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes adminToastIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .admin-header,
 .admin-section {
   border-radius: 8px;
@@ -452,14 +529,43 @@
   gap: 12px;
 }
 
+.course-settings-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.9fr) minmax(320px, 1.1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.course-settings-fields {
+  display: flex;
+  flex-direction: column;
+}
+
+.course-thumbnail-field {
+  min-width: 0;
+}
+
+.course-thumbnail-field .source-preview {
+  padding: 10px;
+}
+
+.course-thumbnail-field .source-preview-image {
+  height: 140px;
+}
+
 .admin-grid-lesson {
   display: grid;
-  grid-template-columns: 3fr 1fr;
-  gap: 12px;
+  grid-template-columns: minmax(320px, 1.15fr) minmax(180px, 0.85fr);
+  gap: 18px;
+  align-items: start;
 }
 
 /* Action Buttons */
 .btn-sm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   padding: 8px 16px;
   font-size: 11px;
   border-radius: 999px;
@@ -510,16 +616,68 @@
 }
 
 .admin-modal-content {
-  max-height: calc(100vh - 40px);
+  position: relative;
+  max-height: calc(100vh - 32px);
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(12, 52, 50, 0.22) transparent;
+}
+
+.admin-modal-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.admin-modal-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.admin-modal-content::-webkit-scrollbar-thumb {
+  background: rgba(12, 52, 50, 0.2);
+  border-radius: 999px;
 }
 
 .course-modal {
-  max-width: min(520px, 100%);
+  width: min(86vw, 760px);
+  max-width: 760px;
+  padding: 34px 44px 32px;
+  border-radius: 16px;
+}
+
+.admin-modal-close {
+  position: absolute;
+  top: 22px;
+  right: 24px;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: rgba(12, 52, 50, 0.52);
+  cursor: pointer;
+  font-size: 26px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-fast);
+}
+
+.admin-modal-close:hover {
+  background: rgba(12, 52, 50, 0.08);
+  color: var(--text-main);
+}
+
+.admin-modal-title {
+  font-size: clamp(28px, 3vw, 38px);
+  line-height: 1.08;
+  margin: 0 42px 26px 0;
 }
 
 .lesson-modal {
-  max-width: min(560px, 100%);
+  width: min(86vw, 760px);
+  max-width: 760px;
+  padding: 34px 44px 32px;
+  border-radius: 16px;
 }
 
 .confirm-modal {
@@ -1121,6 +1279,27 @@
 }
 
 @media (max-width: 768px) {
+  .course-modal,
+  .lesson-modal {
+    width: min(100%, 620px);
+    padding: 28px 22px 24px;
+    border-radius: 16px;
+  }
+
+  .course-settings-grid {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .admin-modal-close {
+    top: 16px;
+    right: 16px;
+  }
+
+  .admin-modal-title {
+    margin-right: 34px;
+  }
+
   .stats-grid {
     grid-template-columns: 1fr;
   }
@@ -1185,14 +1364,6 @@
   }
 }
 
-
-.admin-modal-content {
-  overflow-y: auto;
-  scrollbar-width: none;
-}
-.admin-modal-content::-webkit-scrollbar {
-  display: none;
-}
 
 .hover-lift:hover {
   transform: translateY(-4px) !important;

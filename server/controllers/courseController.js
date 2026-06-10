@@ -2,6 +2,7 @@ import pool from '../config/db.js';
 import { getGeminiModel } from '../ai/config/geminiClient.js';
 import { generateAutomatedAssessment } from '../ai/services/quizEngineService.js';
 import fs from 'fs';
+import path from 'path';
 
 const ensureLessonAssessment = async ({ courseId, lessonId, lessonTitle }) => {
   const existing = await pool.query(
@@ -87,6 +88,11 @@ const groupRepliesByThread = (replies = []) =>
     acc[reply.thread_id].push(reply);
     return acc;
   }, {});
+
+const isMusicCategory = (category = '') =>
+  ['music', 'vocal', 'singing', 'guitar', 'piano', 'violin', 'drums'].includes(
+    String(category).toLowerCase().trim()
+  );
 
 export const getCourses = async (req, res) => {
   const userId = req.user.id;
@@ -222,6 +228,18 @@ export const getLessonQuiz = async (req, res) => {
       lessonTitle: lesson.lesson_title,
     });
 
+    const aiQuizEnabled = process.env.AI_QUIZ_ENABLED !== 'false';
+    if (!aiQuizEnabled) {
+      console.warn(`[Core Quiz Controller] AI quiz generation disabled. Using stored/client fallback for lesson ${lessonId}.`);
+      if (existingQuizzes.rows.length > 0) {
+        return res.json(existingQuizzes.rows.reverse());
+      }
+
+      return res.status(503).json({
+        message: 'AI quiz generation is disabled. Using offline fallback quiz.',
+      });
+    }
+
     // Clear old placeholder question only if it's the very first time (i.e. only 1 question exists in the DB)
     if (existingQuizzes.rows.length <= 1) {
       await pool.query('DELETE FROM quizzes WHERE lesson_id = $1', [lessonId]);
@@ -236,7 +254,7 @@ export const getLessonQuiz = async (req, res) => {
       videoUrl: lesson.video_url || '',
       instrument: lesson.category || 'general',
       tradition: 'general',
-      type: 'mixed', // 3 MCQ + 2 Voice Practice as requested!
+      type: isMusicCategory(lesson.category) ? 'mixed' : 'mcq',
       questionCount: 5,
       difficulty: 'intermediate'
     });
@@ -249,9 +267,16 @@ export const getLessonQuiz = async (req, res) => {
     
     return res.json(finalQuizzes.rows.reverse());
   } catch (error) {
-    console.error('Error in getLessonQuiz:', error);
+    const isQuotaError = error?.status === 429 || String(error?.message || '').includes('quota');
+    if (isQuotaError) {
+      console.warn('AI quiz generation quota exceeded. Falling back to stored/client quiz questions.');
+    } else {
+      console.error('Error in getLessonQuiz:', error);
+    }
+
     try {
-      fs.writeFileSync('d:\\LMS\\LMS\\server\\ai-error.log', `[${new Date().toISOString()}] Error: ${error.message}\nStack: ${error.stack}\n`);
+      const logPath = path.resolve(process.cwd(), 'ai-error.log');
+      fs.appendFileSync(logPath, `[${new Date().toISOString()}] Error: ${error.message}\nStack: ${error.stack}\n\n`);
     } catch (fsErr) {
       console.error('Failed to write log file:', fsErr);
     }

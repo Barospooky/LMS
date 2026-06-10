@@ -5,6 +5,7 @@ const CATEGORY_LABELS = {
   ai: 'AI',
   n8n: 'N8N',
   datascience: 'Data Science',
+  music: 'Music',
 };
 
 export const normalizeCategorySlug = (category = '') => {
@@ -43,6 +44,7 @@ export const getCategoryOptions = () => ([
   { value: 'n8n', label: 'N8N' },
   { value: 'datascience', label: 'Data Science' },
   { value: 'marketing', label: 'Marketing' },
+  { value: 'music', label: 'Music' },
 ]);
 
 export const formatInrCurrency = (amount) =>

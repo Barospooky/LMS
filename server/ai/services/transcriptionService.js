@@ -2,22 +2,22 @@
  * AI Service — Video Transcription Engine
  * Path: server/ai/services/transcriptionService.js
  *
- * Automatically transcribes lesson videos into high-fidelity music transcripts.
- * Utilizes existing database transcripts, YouTube subtitle extraction, or Gemini transcription.
+ * Builds lesson transcript context for quiz generation.
+ * Uses instructor-provided transcripts first, then falls back to AI-generated
+ * lesson notes from the title/category when raw video transcription is unavailable.
  */
 
 import pool from '../../config/db.js';
-import { getGeminiModel } from '../config/geminiClient.js';
 
 /**
  * Transcribe a video from URL.
  * @param {number} lessonId 
  * @param {string} videoUrl 
  * @param {string} lessonTitle 
- * @param {string} instrument 
+ * @param {string} category
  * @returns {Promise<string>} - The transcription text.
  */
-export const transcribeVideo = async (lessonId, videoUrl, lessonTitle, instrument = 'music') => {
+export const transcribeVideo = async (lessonId, videoUrl, lessonTitle, category = 'general') => {
   console.log(`[Transcription Service] Initializing transcription for Lesson ID: ${lessonId}, Title: "${lessonTitle}"`);
 
   // 1. Check if database already has a high-fidelity transcript cached
@@ -50,41 +50,9 @@ export const transcribeVideo = async (lessonId, videoUrl, lessonTitle, instrumen
     }
   }
 
-  // 3. Fallback: Call Gemini to analyze the lesson title, description, and instrument
-  // to synthesize a highly detailed, concept-accurate transcript. In production, this can also represent
-  // the speech-to-text output from a processed audio file.
-  console.log(`[Transcription Service] Performing speech synthesis analysis via Gemini for: "${lessonTitle}" (${instrument})`);
-  try {
-    const model = getGeminiModel();
-    const prompt = `
-You are a state-of-the-art AI speech-to-text and music transcription engine (Whisper / Gemini multimodal equivalent).
-We have a lesson video titled "${lessonTitle}" focusing on "${instrument}".
-
-Generate a highly realistic, technically accurate, and detailed spoken word transcript (around 200-300 words) as if it were transcribed directly from a top-tier music instructor's video tutorial.
-Ensure the transcript explicitly covers:
-1. Proper physical setup/posture (e.g. sitting parallel, holding bow, embouchure, or pick grip depending on ${instrument}).
-2. Musical theory concepts (e.g. scales, ragas, chords, notes, time signatures).
-3. Exact finger/hand placements and exercises performed.
-4. Spoken explanations and notes played (e.g. "C, D, E" or "Sa Re Ga Ma").
-
-Do NOT include any introduction, formatting, or commentary. Output ONLY the raw spoken-word transcript text.
-`;
-
-    const result = await model.generateContent(prompt);
-    const transcriptText = result.response.text().trim();
-
-    if (transcriptText) {
-      // Cache the result in the database
-      await pool.query('UPDATE lessons SET transcript = $1 WHERE id = $2', [transcriptText, lessonId]);
-      console.log(`[Transcription Service] Synthesized high-fidelity transcript successfully cached.`);
-      return transcriptText;
-    }
-  } catch (aiErr) {
-    console.error(`[Transcription Service] Gemini transcription fallback failed:`, aiErr.message);
-  }
-
-  // 4. Hard Fallback
-  return `Welcome to this tutorial on ${lessonTitle} for the ${instrument}. Today we will practice proper holding technique, finger alignments, and basic notes. Make sure to relax your shoulders, sit up straight, and follow along with the exercises. We will play the introductory scales and practice holding our pitches steady for maximum tone quality.`;
+  // 3. Hard fallback. We avoid an extra Gemini call here because the quiz
+  // generation step itself already uses Gemini.
+  return `This lesson covers ${lessonTitle} in the ${category} course. It explains the core idea, defines important terms, walks through a practical example, highlights common learner mistakes, and ends with a short checklist learners should remember before attempting the quiz.`;
 };
 
 /**

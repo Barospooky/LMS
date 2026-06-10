@@ -4,6 +4,13 @@ import './Chatbot.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+const quickPrompts = [
+  'What courses are available?',
+  'How do I get a certificate?',
+  'How do quizzes work?',
+  'How do I purchase a course?',
+];
+
 const Chatbot = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
@@ -41,8 +48,13 @@ const Chatbot = () => {
 
   const handleSend = async () => {
     if (!input.trim()) return;
+    await sendMessage(input.trim());
+  };
 
-    const userMsg = input.trim();
+  const sendMessage = async (message) => {
+    if (!message.trim()) return;
+
+    const userMsg = message.trim();
     setInput('');
     
     // Convert current messages to history format
@@ -80,7 +92,7 @@ const Chatbot = () => {
     <div className="chatbot-wrapper">
       {/* Chat Window */}
       {isOpen && (
-        <div className="chatbot-window">
+      <div className="chatbot-window">
           <div className="chatbot-header">
             <div className="chatbot-header-title">
               <Bot size={20} />
@@ -115,6 +127,19 @@ const Chatbot = () => {
               </div>
             )}
             <div ref={messagesEndRef} />
+          </div>
+
+          <div className="chatbot-suggestions" aria-label="Common LMS questions">
+            {quickPrompts.map((prompt) => (
+              <button
+                key={prompt}
+                type="button"
+                onClick={() => sendMessage(prompt)}
+                disabled={isLoading}
+              >
+                {prompt}
+              </button>
+            ))}
           </div>
 
           <div className="chatbot-input-area">
